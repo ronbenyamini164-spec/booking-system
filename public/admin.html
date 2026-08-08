@@ -9,23 +9,24 @@
             font-family: system-ui, -apple-system, sans-serif;
             background-color: #f4f6f9;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             direction: rtl;
         }
         .container {
             max-width: 950px;
             margin: 0 auto;
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            box-sizing: border-box;
         }
-        h1 { text-align: center; color: #333; }
+        h1 { text-align: center; color: #333; font-size: 22px; margin-top: 5px; }
         .controls {
             background: #eef2f5;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .control-row {
             display: flex;
@@ -33,27 +34,58 @@
             align-items: center;
             margin-bottom: 15px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
         .control-row:last-child { margin-bottom: 0; }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        @media(min-width: 600px) {
+            .btn-group { width: auto; }
+        }
         .status-badge {
             padding: 6px 12px;
             border-radius: 20px;
             font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
         }
         .status-open { background: #d4edda; color: #155724; }
         .status-closed { background: #f8d7da; color: #721c24; }
         .btn {
-            padding: 10px 16px;
+            padding: 10px 14px;
             border: none;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+            text-align: center;
+        }
+        @media(min-width: 600px) {
+            .btn { flex: initial; }
         }
         .btn-toggle { background: #1a73e8; color: white; }
         .btn-reset { background: #dc3545; color: white; }
         .btn-save { background: #34c759; color: white; }
-        .btn-ical { background: #6f42c1; color: white; text-decoration: none; display: inline-block; padding: 10px 16px; border-radius: 6px; font-weight: bold; }
+        .btn-ical { 
+            background: #6f42c1; 
+            color: white; 
+            text-decoration: none; 
+            display: block;
+            width: 100%;
+            padding: 10px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            text-align: center;
+            box-sizing: border-box;
+        }
+        @media(min-width: 600px) {
+            .btn-ical { width: auto; display: inline-block; }
+        }
         
         input[type="number"], input[type="date"] {
             padding: 8px;
@@ -63,25 +95,36 @@
             font-weight: bold;
         }
 
+        /* מעטפת גלילה לטבלה בטלפונים */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
         table {
             width: 100%;
+            min-width: 600px; /* מבטיח שהעמודות לא יימעכו בטלפון */
             border-collapse: collapse;
-            margin-top: 15px;
         }
         th, td {
             padding: 12px;
             border-bottom: 1px solid #ddd;
             text-align: right;
+            font-size: 14px;
         }
         th { background-color: #f8f9fa; }
         .delete-btn {
             background: #ff4d4d;
             color: white;
             border: none;
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            font-weight: bold;
         }
 
         .modal-overlay {
@@ -97,9 +140,11 @@
             background: white;
             padding: 25px;
             border-radius: 12px;
-            width: 350px;
+            width: 90%;
+            max-width: 350px;
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -111,10 +156,10 @@
     <div class="controls">
         <div class="control-row">
             <div>
-                סטטוס האתר כרגע: 
+                סטטוס האתר: 
                 <span id="status-text" class="status-badge">טוען...</span>
             </div>
-            <div>
+            <div class="btn-group">
                 <button class="btn btn-toggle" onclick="toggleStatus()">פתח / סגור הרשמה</button>
                 <button class="btn btn-reset" onclick="openResetModal()">איפוס שבוע חדש</button>
             </div>
@@ -123,32 +168,34 @@
         <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
 
         <div class="control-row">
-            <div>
-                <label style="font-weight: bold;">זמן הפסקה בין שיעורים (בדקות): </label>
-                <input type="number" id="buffer-input" min="0" max="60" value="15" style="width: 70px; text-align: center;">
-                <button class="btn btn-save" onclick="updateBuffer()" style="margin-right: 5px;">שמור הפסקה</button>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <label style="font-weight: bold;">הפסקה בין שיעורים (בדקות): </label>
+                <input type="number" id="buffer-input" min="0" max="60" value="15" style="width: 65px; text-align: center;">
+                <button class="btn btn-save" onclick="updateBuffer()">שמור הפסקה</button>
             </div>
-            <div>
+            <div style="width: 100%; max-width: 300px;">
                 <a href="/api/admin/export-ical" class="btn-ical">📅 הורד קובץ יומן (Apple / Google)</a>
             </div>
         </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>יום ותאריך</th>
-                <th>שעת התחלה</th>
-                <th>שעת סיום</th>
-                <th>שם התלמיד</th>
-                <th>טלפון</th>
-                <th>פעולות</th>
-            </tr>
-        </thead>
-        <tbody id="admin-table-body">
-            <!-- הנתונים יוטענו לכאן -->
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>יום ותאריך</th>
+                    <th>התחלה</th>
+                    <th>סיום</th>
+                    <th>שם התלמיד</th>
+                    <th>טלפון</th>
+                    <th>פעולות</th>
+                </tr>
+            </thead>
+            <tbody id="admin-table-body">
+                <!-- הנתונים יוטענו לכאן -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="modal-overlay" id="reset-modal">
@@ -157,7 +204,7 @@
         <p>מחיקת כל השיעורים הקיימים ובחירת תאריך יום ראשון הקרוב:</p>
         <div style="margin: 15px 0;">
             <label style="display: block; margin-bottom: 5px; font-weight: bold;">תאריך יום ראשון:</label>
-            <input type="date" id="sunday-date-input">
+            <input type="date" id="sunday-date-input" style="width: 100%; box-sizing: border-box;">
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="btn btn-reset" style="flex:1;" onclick="confirmReset()">אפס יומן עכשיו</button>
@@ -216,11 +263,14 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isOpen: newStatus })
             });
-            const data = await res.json();
+            const text = await res.text();
+            let data;
+            try { data = JSON.parse(text); } catch(e) {}
+
             if (res.ok) {
                 await loadAdminData();
             } else {
-                alert('שגיאה בשינוי הסטטוס: ' + (data.error || 'שגיאה לא ידועה'));
+                alert('שגיאה בשינוי הסטטוס: ' + (data && data.error ? data.error : text));
             }
         } catch (err) {
             alert('שגיאה בתקשורת: ' + err.message);
