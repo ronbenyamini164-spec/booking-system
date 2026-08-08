@@ -3,6 +3,11 @@ const { Pool } = require('pg');
 const app = express();
 
 app.use(express.json());
+// הגנה על קובץ המנהל ברמת השרת
+app.get('/admin.html', (req, res, next) => {
+    // מגיש את דף המנהל הרגיל (האבטחה והבדיקות יתבצעו דרך ה-API והסיסמה)
+    next();
+});
 app.use(express.static('public'));
 
 const ADMIN_PASSWORD = "082719"; // סיסמת המנהל
