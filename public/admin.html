@@ -8,6 +8,11 @@
         body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; direction: rtl; }
         .container { max-width: 1150px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
         h1, h2 { color: #333; text-align: center; }
+        
+        .login-box { max-width: 380px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 12px; border: 1px solid #dadce0; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .login-box input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 18px; box-sizing: border-box; margin-bottom: 15px; text-align: center; letter-spacing: 2px; }
+        .login-box button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+
         .section-box { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
 
         .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
@@ -40,76 +45,88 @@
 <body>
 
 <div class="container">
-    <h1>ממשק ניהול ומעקב מורה</h1>
-
-    <div class="section-box">
-        <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <button class="btn btn-blue" onclick="openAccessModal()">🔒 פתיחה/סגירה להרשמה</button>
-            <button class="btn btn-red" onclick="openGlobalBlocksModal()">⛔ חסימת סלוטים לכולם</button>
-            <button class="btn btn-red" onclick="openResetModal()">🔄 איפוס שבוע חדש</button>
-            <a href="/api/admin/export-ical" class="btn btn-purple">📅 הורד יומן (iCal)</a>
-        </div>
+    <!-- מסך כניסת מנהל -->
+    <div id="admin-login-box" class="login-box">
+        <h2>כניסת מנהל מערכת</h2>
+        <p style="font-size: 14px; color: #666;">הכנס סיסמה לצפייה וניהול</p>
+        <input type="password" id="admin-password-input" placeholder="••••••">
+        <button onclick="loginAdmin()">התחבר לממשק</button>
+        <div id="login-err-msg" style="color: red; margin-top: 10px; font-size: 14px; display: none;"></div>
     </div>
 
-    <div class="section-box">
-        <h3>הוספת שיעור ידנית ביומן (שעות חופשיות)</h3>
-        <form id="custom-slot-form" onsubmit="addCustomSlot(event)" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <select id="custom-day" required style="padding: 8px; border-radius: 6px;">
-                <option value="0">יום ראשון</option>
-                <option value="1">יום שני</option>
-                <option value="2">יום שלישי</option>
-                <option value="3">יום רביעי</option>
-                <option value="4">יום חמישי</option>
-            </select>
-            <input type="time" id="custom-start" required style="padding: 8px; border-radius: 6px;">
-            <input type="time" id="custom-end" required style="padding: 8px; border-radius: 6px;">
-            <input type="text" id="custom-name" placeholder="שם השיעור / תלמיד" required style="padding: 8px; border-radius: 6px;">
-            <button type="submit" class="btn btn-green">+ הוסף שיעור ידנית</button>
-        </form>
-    </div>
+    <!-- תוכן ממשק ניהול (חסום עד התחברות) -->
+    <div id="admin-main-content" style="display: none;">
+        <h1>ממשק ניהול ומעקב מורה</h1>
 
-    <div class="section-box">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>ניהול תלמידים ומעקב שבועי</h3>
-            <button class="btn btn-green" onclick="openStudentModal()">+ הוסף תלמיד חדש</button>
+        <div class="section-box">
+            <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-blue" onclick="openAccessModal()">🔒 פתיחה/סגירה להרשמה</button>
+                <button class="btn btn-red" onclick="openGlobalBlocksModal()">⛔ חסימת סלוטים לכולם</button>
+                <button class="btn btn-red" onclick="openResetModal()">🔄 איפוס שבוע חדש</button>
+                <a href="/api/admin/export-ical" class="btn btn-purple">📅 הורד יומן (iCal)</a>
+            </div>
         </div>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>שם התלמיד</th>
-                        <th>מכסה דיפולט</th>
-                        <th>טווח שעות מורשה (דיפולט)</th>
-                        <th>שיעורים קבועים (דיפולט)</th>
-                        <th>מכסה השבוע</th>
-                        <th>שיעורים שנקבעו השבוע</th>
-                        <th>פעולות</th>
-                    </tr>
-                </thead>
-                <tbody id="students-table-body"></tbody>
-            </table>
+
+        <div class="section-box">
+            <h3>הוספת שיעור ידנית ביומן (שעות חופשיות)</h3>
+            <form id="custom-slot-form" onsubmit="addCustomSlot(event)" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <select id="custom-day" required style="padding: 8px; border-radius: 6px;">
+                    <option value="0">יום ראשון</option>
+                    <option value="1">יום שני</option>
+                    <option value="2">יום שלישי</option>
+                    <option value="3">יום רביעי</option>
+                    <option value="4">יום חמישי</option>
+                </select>
+                <input type="time" id="custom-start" required style="padding: 8px; border-radius: 6px;">
+                <input type="time" id="custom-end" required style="padding: 8px; border-radius: 6px;">
+                <input type="text" id="custom-name" placeholder="שם השיעור / תלמיד" required style="padding: 8px; border-radius: 6px;">
+                <button type="submit" class="btn btn-green">+ הוסף שיעור ידנית</button>
+            </form>
         </div>
-    </div>
 
-    <div class="section-box">
-        <h3>לוח שבועי מלא (תצוגת גוגל קלנדר)</h3>
-        <div class="calendar-wrapper">
-            <div class="calendar-grid">
-                <div class="header-cell">שעה</div>
-                <div class="header-cell" id="ah-0">ראשון</div>
-                <div class="header-cell" id="ah-1">שני</div>
-                <div class="header-cell" id="ah-2">שלישי</div>
-                <div class="header-cell" id="ah-3">רביעי</div>
-                <div class="header-cell" id="ah-4">חמישי</div>
+        <div class="section-box">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>ניהול תלמידים ומעקב שבועי</h3>
+                <button class="btn btn-green" onclick="openStudentModal()">+ הוסף תלמיד חדש</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>שם התלמיד</th>
+                            <th>מכסה דיפולט</th>
+                            <th>טווח שעות מורשה (דיפולט)</th>
+                            <th>שיעורים קבועים (דיפולט)</th>
+                            <th>מכסה השבוע</th>
+                            <th>שיעורים שנקבעו השבוע</th>
+                            <th>פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody id="students-table-body"></tbody>
+                </table>
+            </div>
+        </div>
 
-                <div id="admin-time-col"></div>
+        <div class="section-box">
+            <h3>לוח שבועי מלא (תצוגת גוגל קלנדר)</h3>
+            <div class="calendar-wrapper">
+                <div class="calendar-grid">
+                    <div class="header-cell">שעה</div>
+                    <div class="header-cell" id="ah-0">ראשון</div>
+                    <div class="header-cell" id="ah-1">שני</div>
+                    <div class="header-cell" id="ah-2">שלישי</div>
+                    <div class="header-cell" id="ah-3">רביעי</div>
+                    <div class="header-cell" id="ah-4">חמישי</div>
 
-                <div class="day-column" id="acol-0"></div>
-                <div class="day-column" id="acol-1"></div>
-                <div class="day-column" id="acol-2"></div>
-                <div class="day-column" id="acol-3"></div>
-                <div class="day-column" id="acol-4"></div>
+                    <div id="admin-time-col"></div>
+
+                    <div class="day-column" id="acol-0"></div>
+                    <div class="day-column" id="acol-1"></div>
+                    <div class="day-column" id="acol-2"></div>
+                    <div class="day-column" id="acol-3"></div>
+                    <div class="day-column" id="acol-4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -254,6 +271,39 @@
     const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
     const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
 
+    async function loginAdmin() {
+        const password = document.getElementById('admin-password-input').value;
+        const errDiv = document.getElementById('login-err-msg');
+
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+
+            if (res.ok) {
+                sessionStorage.setItem('admin_authenticated', 'true');
+                document.getElementById('admin-login-box').style.display = 'none';
+                document.getElementById('admin-main-content').style.display = 'block';
+                loadData();
+            } else {
+                errDiv.innerText = 'סיסמה שגויה!';
+                errDiv.style.display = 'block';
+            }
+        } catch (err) {
+            errDiv.innerText = 'שגיאה בתקשורת עם השרת';
+            errDiv.style.display = 'block';
+        }
+    }
+
+    // זיהוי אוטומטי אם כבר התחבר בסשן הנוכחי
+    if (sessionStorage.getItem('admin_authenticated') === 'true') {
+        document.getElementById('admin-login-box').style.display = 'none';
+        document.getElementById('admin-main-content').style.display = 'block';
+        loadData();
+    }
+
     function timeToMins(t) {
         const [h, m] = t.split(':').map(Number);
         return h * 60 + m;
@@ -330,7 +380,6 @@
                 col.appendChild(bg);
             });
 
-            // 1. הוספת תצוגת סלוטים חסומים גלובלית בלוח המנהל
             globalData.fixedSlots.forEach((slot, slotIndex) => {
                 const key = `${day}_${slot.start}`;
                 if (allGlobalBlocked.includes(key)) {
@@ -343,7 +392,6 @@
                 }
             });
 
-            // 2. הוספת תצוגת שיעורים שנקבעו
             globalData.appointments.filter(a => a.day_index === day).forEach(app => {
                 const startM = timeToMins(app.start_time);
                 const endM = timeToMins(app.end_time);
@@ -666,8 +714,6 @@
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-    loadData();
 </script>
 </body>
 </html>

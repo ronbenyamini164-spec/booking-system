@@ -5,6 +5,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
+const ADMIN_PASSWORD = "082719"; // סיסמת המנהל
+
 const FIXED_SLOTS = [
     { start: '08:00', end: '09:00' },
     { start: '09:15', end: '10:15' },
@@ -105,6 +107,16 @@ function calculateDatesFromSunday(sundayDateStr) {
     });
 }
 
+// אימות סיסמת מנהל
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        return res.json({ success: true });
+    } else {
+        return res.status(401).json({ error: 'סיסמה שגויה' });
+    }
+});
+
 app.get('/api/slots', async (req, res) => {
     try {
         const studentName = req.query.studentName ? req.query.studentName.trim() : null;
@@ -120,7 +132,6 @@ app.get('/api/slots', async (req, res) => {
         const defaultGlobalBlocked = JSON.parse(settings.default_global_blocked_slots || '[]');
         const weeklyGlobalBlocked = JSON.parse(settings.weekly_global_blocked_slots || '[]');
 
-        // איחוד חסימות גלובליות לכולם
         const allGlobalBlocked = Array.from(new Set([...defaultGlobalBlocked, ...weeklyGlobalBlocked]));
 
         let isStudentAllowedToBook = isOpen;
@@ -425,7 +436,7 @@ app.post('/api/admin/reset-slots', async (req, res) => {
 
         await pool.query("DELETE FROM appointments");
         await pool.query("DELETE FROM weekly_student_config");
-        await pool.query("UPDATE settings SET value = $1 WHERE key = 'weekly_global_blocked_slots'", ["[]"]); // איפוס חסימות גלובליות שבועיות
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'weekly_global_blocked_slots'", ["[]"]);
         await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
 
         if (applyFixedLessons) {
