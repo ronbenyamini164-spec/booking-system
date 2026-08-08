@@ -9,7 +9,7 @@
             font-family: system-ui, -apple-system, sans-serif;
             background-color: #f8f9fa;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             direction: rtl;
         }
         .container {
@@ -19,28 +19,41 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-sizing: border-box;
         }
-        h1 { text-align: center; color: #1a73e8; margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #5f6368; margin-bottom: 20px; }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 5px; font-size: 24px; }
+        p.subtitle { text-align: center; color: #5f6368; margin-bottom: 20px; font-size: 14px; }
 
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: 70px repeat(5, 1fr);
+        /* מעטפת גלילה אופקית ליומן במסכים קטנים */
+        .calendar-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             border: 1px solid #dadce0;
             border-radius: 8px;
-            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* יומן - רוחב מינימלי להבטחת תצוגה מעולה בטלפון */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(5, minmax(130px, 1fr));
+            min-width: 710px; /* מבטיח שכל 5 הימים יוצגו ברוחב נוח בלחיצה */
             background: white;
         }
         .header-cell {
             background: #f1f3f4;
-            padding: 10px;
+            padding: 10px 5px;
             text-align: center;
             font-weight: bold;
             border-bottom: 2px solid #dadce0;
             border-left: 1px solid #dadce0;
-            font-size: 14px;
+            font-size: 13px;
             white-space: pre-line;
             box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            z-index: 2;
         }
         .time-cell {
             background: #fafafa;
@@ -87,10 +100,13 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             z-index: 10;
             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
             cursor: pointer;
+            box-sizing: border-box;
+            padding: 2px;
+            text-align: center;
         }
 
         .block-booked {
@@ -143,9 +159,11 @@
             background: white;
             padding: 25px;
             border-radius: 12px;
-            width: 340px;
+            width: 90%;
+            max-width: 340px;
             text-align: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-sizing: border-box;
         }
         .quarter-grid {
             display: grid;
@@ -192,13 +210,16 @@
         }
 
         .booking-box {
-            margin-top: 25px;
+            margin-top: 20px;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
         }
-        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-direction: column; }
+        @media(min-width: 600px) {
+            .form-row { flex-direction: row; }
+        }
         .form-group { flex: 1; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
@@ -225,6 +246,16 @@
         #message { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; display: none; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
+        .scroll-hint {
+            text-align: center;
+            font-size: 12px;
+            color: #70757a;
+            margin-bottom: 8px;
+            display: block;
+        }
+        @media(min-width: 768px) {
+            .scroll-hint { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -235,36 +266,40 @@
 
     <div id="status-banner"></div>
 
-    <div class="calendar-grid">
-        <div class="header-cell">שעה</div>
-        <div class="header-cell" id="h-0">ראשון</div>
-        <div class="header-cell" id="h-1">שני</div>
-        <div class="header-cell" id="h-2">שלישי</div>
-        <div class="header-cell" id="h-3">רביעי</div>
-        <div class="header-cell" id="h-4">חמישי</div>
+    <span class="scroll-hint">👈 ניתן לגלול אופקית לצפייה בכל ימי השבוע 👉</span>
 
-        <div>
-            <div class="time-cell">08:00</div>
-            <div class="time-cell">09:00</div>
-            <div class="time-cell">10:00</div>
-            <div class="time-cell">11:00</div>
-            <div class="time-cell">12:00</div>
-            <div class="time-cell">13:00</div>
-            <div class="time-cell">14:00</div>
-            <div class="time-cell">15:00</div>
-            <div class="time-cell">16:00</div>
-            <div class="time-cell">17:00</div>
-            <div class="time-cell">18:00</div>
-            <div class="time-cell">19:00</div>
-            <div class="time-cell">20:00</div>
-            <div class="time-cell">21:00</div>
+    <div class="calendar-wrapper">
+        <div class="calendar-grid">
+            <div class="header-cell">שעה</div>
+            <div class="header-cell" id="h-0">ראשון</div>
+            <div class="header-cell" id="h-1">שני</div>
+            <div class="header-cell" id="h-2">שלישי</div>
+            <div class="header-cell" id="h-3">רביעי</div>
+            <div class="header-cell" id="h-4">חמישי</div>
+
+            <div>
+                <div class="time-cell">08:00</div>
+                <div class="time-cell">09:00</div>
+                <div class="time-cell">10:00</div>
+                <div class="time-cell">11:00</div>
+                <div class="time-cell">12:00</div>
+                <div class="time-cell">13:00</div>
+                <div class="time-cell">14:00</div>
+                <div class="time-cell">15:00</div>
+                <div class="time-cell">16:00</div>
+                <div class="time-cell">17:00</div>
+                <div class="time-cell">18:00</div>
+                <div class="time-cell">19:00</div>
+                <div class="time-cell">20:00</div>
+                <div class="time-cell">21:00</div>
+            </div>
+
+            <div class="day-column" id="col-0"></div>
+            <div class="day-column" id="col-1"></div>
+            <div class="day-column" id="col-2"></div>
+            <div class="day-column" id="col-3"></div>
+            <div class="day-column" id="col-4"></div>
         </div>
-
-        <div class="day-column" id="col-0"></div>
-        <div class="day-column" id="col-1"></div>
-        <div class="day-column" id="col-2"></div>
-        <div class="day-column" id="col-3"></div>
-        <div class="day-column" id="col-4"></div>
     </div>
 
     <!-- פופ-אפ רבעי שעות -->
@@ -317,7 +352,7 @@
     let globalAppointments = [];
     let globalDays = [];
     let isSiteOpen = true;
-    let currentTotalSlotTime = 75; // שיעור + הפסקה מדינמי מהשרת
+    let currentTotalSlotTime = 75;
 
     const ROW_HEIGHT = 48; 
     const START_HOUR = 8;
@@ -334,7 +369,7 @@
             globalAppointments = data.appointments;
             globalDays = data.days;
             isSiteOpen = data.isOpen;
-            currentTotalSlotTime = data.totalSlotTime; // מקבל מהשרת למשל 75 דק'
+            currentTotalSlotTime = data.totalSlotTime;
 
             const banner = document.getElementById('status-banner');
             const submitBtn = document.getElementById('submit-btn');
@@ -372,7 +407,6 @@
                     col.appendChild(btn);
                 }
 
-                // בלוקים תפוסים (אדום)
                 globalAppointments.filter(a => a.day_index === day).forEach(app => {
                     const startM = timeToMins(app.start_time);
                     const topPos = ((startM - (START_HOUR * 60)) / 60) * ROW_HEIGHT;
@@ -386,7 +420,6 @@
                     col.appendChild(block);
                 });
 
-                // בלוקים בבחירה (תכלת)
                 selectedSlots.filter(s => s.dayIndex === day).forEach(slot => {
                     const startM = timeToMins(slot.startTime);
                     const topPos = ((startM - (START_HOUR * 60)) / 60) * ROW_HEIGHT;
@@ -432,9 +465,8 @@
         quarters.forEach(q => {
             const timeStr = `${String(hour).padStart(2, '0')}:${q}`;
             const startM = timeToMins(timeStr);
-            const endM = startM + currentTotalSlotTime; // משתמש בזמן הכולל הדינמי המלא!
+            const endM = startM + currentTotalSlotTime;
 
-            // בדיקת חפיפה מדויקת מול כל השיעורים ביומן והבחירות הזמניות
             const isConflict = globalAppointments.some(a => {
                 if (a.day_index !== day) return false;
                 const appStart = timeToMins(a.start_time);
