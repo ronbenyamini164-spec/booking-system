@@ -6,7 +6,7 @@
     <title>ממשק מנהל - ניהול מערכת שיעורים</title>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; direction: rtl; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
+        .container { max-width: 1150px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
         h1, h2 { color: #333; text-align: center; }
         .section-box { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
 
@@ -17,7 +17,7 @@
         .btn-purple { background: #6f42c1; color: white; text-decoration: none; display: inline-block; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-size: 13px; }
         th { background: #f8f9fa; }
 
         .calendar-wrapper { width: 100%; overflow-x: auto; border: 1px solid #dadce0; border-radius: 8px; margin-top: 15px; }
@@ -29,6 +29,7 @@
         .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); box-sizing: border-box; padding: 2px; text-align: center; cursor: pointer; }
         .block-booked { background-color: #fce8e6; color: #c5221f; border: 1px solid #d93025; }
         .block-custom { background-color: #fef7e0; color: #b06000; border: 1px solid #f29900; }
+        .block-global-blocked { background-color: #e8eaed; color: #5f6368; border: 1px dashed #70757a; cursor: default; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); box-sizing: border-box; }
@@ -79,6 +80,8 @@
                     <tr>
                         <th>שם התלמיד</th>
                         <th>מכסה דיפולט</th>
+                        <th>טווח שעות מורשה (דיפולט)</th>
+                        <th>שיעורים קבועים (דיפולט)</th>
                         <th>מכסה השבוע</th>
                         <th>שיעורים שנקבעו השבוע</th>
                         <th>פעולות</th>
@@ -191,7 +194,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ חסימות גלובליות לכולם -->
 <div class="modal-overlay" id="global-blocks-modal">
     <div class="modal-content">
         <h3>חסימת סלוטים לכל התלמידים</h3>
@@ -250,6 +252,7 @@
     const ROW_HEIGHT = 50;
     const GRID_START_MINS = 8 * 60;
     const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
+    const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
 
     function timeToMins(t) {
         const [h, m] = t.split(':').map(Number);
@@ -273,11 +276,20 @@
         tbody.innerHTML = '';
 
         studentsList.forEach(s => {
+            const timeRangeText = s.default_time_range ? `${s.default_time_range.start}-${s.default_time_range.end}` : '08:00-21:00';
+            
+            const fixedText = (s.fixed_lessons && s.fixed_lessons.length > 0)
+                ? s.fixed_lessons.map(fl => `יום ${DAY_NAMES[fl.dayIndex]} ${fl.startTime}-${fl.endTime}`).join('<br>')
+                : 'ללא';
+
             let lessonsText = s.bookedLessons.map(l => `${globalData.days[l.day_index]?.name || ''} ${l.start_time}`).join(', ') || 'טרם נקבעו';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${s.name}</strong></td>
                 <td>${s.default_quota}</td>
+                <td>${timeRangeText}</td>
+                <td style="font-size: 12px; color: #155724;">${fixedText}</td>
                 <td>${s.effectiveQuota}</td>
                 <td>${lessonsText}</td>
                 <td>
@@ -305,6 +317,8 @@
             timeCol.appendChild(div);
         });
 
+        const allGlobalBlocked = globalData.allGlobalBlocked || [];
+
         for (let day = 0; day < 5; day++) {
             const col = document.getElementById(`acol-${day}`);
             col.innerHTML = '';
@@ -316,6 +330,20 @@
                 col.appendChild(bg);
             });
 
+            // 1. הוספת תצוגת סלוטים חסומים גלובלית בלוח המנהל
+            globalData.fixedSlots.forEach((slot, slotIndex) => {
+                const key = `${day}_${slot.start}`;
+                if (allGlobalBlocked.includes(key)) {
+                    const block = document.createElement('div');
+                    block.className = 'block-overlay block-global-blocked';
+                    block.style.top = `${slotIndex * ROW_HEIGHT}px`;
+                    block.style.height = `${ROW_HEIGHT}px`;
+                    block.innerText = `חסום לכולם (${slot.start})`;
+                    col.appendChild(block);
+                }
+            });
+
+            // 2. הוספת תצוגת שיעורים שנקבעו
             globalData.appointments.filter(a => a.day_index === day).forEach(app => {
                 const startM = timeToMins(app.start_time);
                 const endM = timeToMins(app.end_time);
@@ -472,9 +500,8 @@
     function renderFixedLessonsList() {
         const div = document.getElementById('fixed-lessons-list');
         div.innerHTML = '';
-        const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
         tempFixedLessons.forEach((fl, idx) => {
-            div.innerHTML += `<div>יום ${dayNames[fl.dayIndex]} בשעה ${fl.startTime}-${fl.endTime} ${fl.isCustom ? '(שעה חופשית)' : ''} <span style="color:red; cursor:pointer;" onclick="tempFixedLessons.splice(${idx},1); renderFixedLessonsList();">✕</span></div>`;
+            div.innerHTML += `<div>יום ${DAY_NAMES[fl.dayIndex]} בשעה ${fl.startTime}-${fl.endTime} ${fl.isCustom ? '(שעה חופשית)' : ''} <span style="color:red; cursor:pointer;" onclick="tempFixedLessons.splice(${idx},1); renderFixedLessonsList();">✕</span></div>`;
         });
     }
 
@@ -550,9 +577,8 @@
     function renderCustomWeeklyRangesList() {
         const div = document.getElementById('ov-custom-ranges-list');
         div.innerHTML = '';
-        const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
         tempCustomWeeklyRanges.forEach((r, idx) => {
-            div.innerHTML += `<div>יום ${dayNames[r.dayIndex]} בין ${r.start}-${r.end} <span style="color:red; cursor:pointer;" onclick="tempCustomWeeklyRanges.splice(${idx},1); renderCustomWeeklyRangesList();">✕</span></div>`;
+            div.innerHTML += `<div>יום ${DAY_NAMES[r.dayIndex]} בין ${r.start}-${r.end} <span style="color:red; cursor:pointer;" onclick="tempCustomWeeklyRanges.splice(${idx},1); renderCustomWeeklyRangesList();">✕</span></div>`;
         });
     }
 

@@ -23,6 +23,7 @@
         .slot-btn { border: none; border-bottom: 1px solid #f1f3f4; background: white; color: #333; font-size: 12px; cursor: pointer; width: 100%; height: 50px; transition: background 0.15s; outline: none; box-sizing: border-box; margin: 0; padding: 0; }
         .slot-btn:hover:not(:disabled) { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
         
+        /* סלוטים חסומים / תפוסים - אדום חלק ללא טקסט וללא גבול פנימי */
         .slot-btn:disabled { 
             background: #fce8e6 !important; 
             border: none !important; 
@@ -242,7 +243,7 @@
                 }
 
                 const slotKey = `${day}_${slot.start}`;
-                const isGloballyBlocked = allGlobalBlocked.includes(slotKey); // חסימה גלובלית ע"י המנהל לכולם
+                const isGloballyBlocked = allGlobalBlocked.includes(slotKey);
 
                 if (studentData.blockedSlots.includes(slotKey) || isGloballyBlocked || !isStudentAllowedToBook || !isAllowed) {
                     btn.disabled = true;
