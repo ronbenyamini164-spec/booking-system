@@ -23,7 +23,6 @@
         .slot-btn { border: none; border-bottom: 1px solid #f1f3f4; background: white; color: #333; font-size: 12px; cursor: pointer; width: 100%; height: 50px; transition: background 0.15s; outline: none; box-sizing: border-box; margin: 0; padding: 0; }
         .slot-btn:hover:not(:disabled) { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
         
-        /* סלוטים חסומים - אדום רציף ללא גבולות פנימיים וללא טקסט */
         .slot-btn:disabled { 
             background: #fce8e6 !important; 
             border: none !important; 
@@ -119,6 +118,7 @@
     let globalAppointments = [];
     let globalDays = [];
     let fixedSlots = [];
+    let allGlobalBlocked = [];
     let isStudentAllowedToBook = true;
 
     const ROW_HEIGHT = 50;
@@ -162,6 +162,7 @@
             globalAppointments = data.appointments;
             globalDays = data.days;
             fixedSlots = data.fixedSlots;
+            allGlobalBlocked = data.allGlobalBlocked || [];
             isStudentAllowedToBook = data.isStudentAllowedToBook;
 
             document.getElementById('welcome-msg').innerText = `שלום ${studentData.name} | מכסה שבועית: ${studentData.effectiveQuota} | שיעורים שנקבעו: ${studentData.currentBookings} | נותרו לקביעה: ${studentData.remainingQuota}`;
@@ -225,16 +226,13 @@
                 const slotStartM = timeToMins(slot.start);
                 const slotEndM = timeToMins(slot.end);
 
-                // 1. בדיקת טווח שעות דיפולטיבי
                 let isAllowed = (slotStartM >= defStartM && slotEndM <= defEndM);
 
-                // 2. בדיקת דריסה שבועית במידה ופתחת טווח מיוחד לשבוע זה (בודק מול כל הטווחים של יום זה)
                 if (studentData.allowedCustomRanges && Array.isArray(studentData.allowedCustomRanges)) {
                     const isCustomRangeMatch = studentData.allowedCustomRanges.some(r => {
                         if (parseInt(r.dayIndex) !== day) return false;
                         const cStartM = timeToMins(r.start);
                         const cEndM = timeToMins(r.end);
-                        // מורשה אם שעת ההתחלה של הסלוט נמצאת בתוך הטווח שנפתח
                         return (slotStartM >= cStartM && slotStartM < cEndM);
                     });
 
@@ -243,9 +241,10 @@
                     }
                 }
 
-                // 3. חסימה אם הסלוט נחסם ספציפית, אם האתר סגור, או אם הסלוט לא מורשה
                 const slotKey = `${day}_${slot.start}`;
-                if (studentData.blockedSlots.includes(slotKey) || !isStudentAllowedToBook || !isAllowed) {
+                const isGloballyBlocked = allGlobalBlocked.includes(slotKey); // חסימה גלובלית ע"י המנהל לכולם
+
+                if (studentData.blockedSlots.includes(slotKey) || isGloballyBlocked || !isStudentAllowedToBook || !isAllowed) {
                     btn.disabled = true;
                     btn.innerText = ''; 
                 } else {

@@ -43,10 +43,11 @@
 
     <div class="section-box">
         <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
-        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-            <button class="btn btn-blue" onclick="openAccessModal()">🔒 הגדרת פתיחה/סגירה להרשמה</button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-blue" onclick="openAccessModal()">🔒 פתיחה/סגירה להרשמה</button>
+            <button class="btn btn-red" onclick="openGlobalBlocksModal()">⛔ חסימת סלוטים לכולם</button>
             <button class="btn btn-red" onclick="openResetModal()">🔄 איפוס שבוע חדש</button>
-            <a href="/api/admin/export-ical" class="btn btn-purple">📅 הורד קובץ יומן (iCal)</a>
+            <a href="/api/admin/export-ical" class="btn btn-purple">📅 הורד יומן (iCal)</a>
         </div>
     </div>
 
@@ -190,6 +191,25 @@
     </div>
 </div>
 
+<!-- פופ-אפ חסימות גלובליות לכולם -->
+<div class="modal-overlay" id="global-blocks-modal">
+    <div class="modal-content">
+        <h3>חסימת סלוטים לכל התלמידים</h3>
+        <div style="text-align: right; margin-bottom: 15px;">
+            <label style="font-weight: bold;">חסימות קבועות (כל שבוע):</label>
+            <div class="slot-checkbox-grid" id="def-global-grid" style="margin-top:4px;"></div>
+        </div>
+        <div style="text-align: right; margin-bottom: 15px;">
+            <label style="font-weight: bold;">חסימות לשבוע הנוכחי בלבד (מתאפס באיפוס שבוע):</label>
+            <div class="slot-checkbox-grid" id="week-global-grid" style="margin-top:4px;"></div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-green" style="flex:1;" onclick="saveGlobalBlocks()">שמור חסימות לכולם</button>
+            <button class="btn btn-red" style="flex:1;" onclick="closeModal('global-blocks-modal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="reset-modal">
     <div class="modal-content">
         <h3>איפוס שבוע חדש</h3>
@@ -319,6 +339,45 @@
                 col.appendChild(block);
             });
         }
+    }
+
+    function openGlobalBlocksModal() {
+        const defGrid = document.getElementById('def-global-grid');
+        const weekGrid = document.getElementById('week-global-grid');
+        defGrid.innerHTML = '';
+        weekGrid.innerHTML = '';
+
+        const dayNames = ['א', 'ב', 'ג', 'ד', 'ה'];
+        for (let d = 0; d < 5; d++) {
+            globalData.fixedSlots.forEach(slot => {
+                const key = `${d}_${slot.start}`;
+                
+                const defChecked = globalData.defaultGlobalBlocked.includes(key) ? 'checked' : '';
+                defGrid.innerHTML += `<label><input type="checkbox" class="def-g-cb" value="${key}" ${defChecked}> יום ${dayNames[d]} ${slot.start}</label>`;
+
+                const weekChecked = globalData.weeklyGlobalBlocked.includes(key) ? 'checked' : '';
+                weekGrid.innerHTML += `<label><input type="checkbox" class="week-g-cb" value="${key}" ${weekChecked}> יום ${dayNames[d]} ${slot.start}</label>`;
+            });
+        }
+
+        document.getElementById('global-blocks-modal').style.display = 'flex';
+    }
+
+    async function saveGlobalBlocks() {
+        const defaultGlobalBlocked = [];
+        document.querySelectorAll('.def-g-cb:checked').forEach(cb => defaultGlobalBlocked.push(cb.value));
+
+        const weeklyGlobalBlocked = [];
+        document.querySelectorAll('.week-g-cb:checked').forEach(cb => weeklyGlobalBlocked.push(cb.value));
+
+        await fetch('/api/admin/global-blocks/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ defaultGlobalBlocked, weeklyGlobalBlocked })
+        });
+
+        closeModal('global-blocks-modal');
+        loadData();
     }
 
     async function deleteAppointment(id) {

@@ -66,7 +66,9 @@ async function initDb() {
             ["is_open", "true"],
             ["open_mode", "all"],
             ["allowed_students", "[]"],
-            ["sunday_date", ""]
+            ["sunday_date", ""],
+            ["default_global_blocked_slots", "[]"],
+            ["weekly_global_blocked_slots", "[]"]
         ];
 
         for (const [k, v] of defaults) {
@@ -115,6 +117,11 @@ app.get('/api/slots', async (req, res) => {
         const openMode = settings.open_mode || 'all';
         const allowedStudentsList = JSON.parse(settings.allowed_students || '[]');
         const sundayDate = settings.sunday_date || '';
+        const defaultGlobalBlocked = JSON.parse(settings.default_global_blocked_slots || '[]');
+        const weeklyGlobalBlocked = JSON.parse(settings.weekly_global_blocked_slots || '[]');
+
+        // איחוד חסימות גלובליות לכולם
+        const allGlobalBlocked = Array.from(new Set([...defaultGlobalBlocked, ...weeklyGlobalBlocked]));
 
         let isStudentAllowedToBook = isOpen;
         if (studentName) {
@@ -165,6 +172,9 @@ app.get('/api/slots', async (req, res) => {
             sundayDate,
             days,
             appointments: appsRes.rows,
+            defaultGlobalBlocked,
+            weeklyGlobalBlocked,
+            allGlobalBlocked,
             studentData
         });
     } catch (err) {
@@ -246,6 +256,23 @@ app.post('/api/book', async (req, res) => {
 
 /* --- API למנהל --- */
 
+app.post('/api/admin/global-blocks/save', async (req, res) => {
+    try {
+        const { defaultGlobalBlocked, weeklyGlobalBlocked } = req.body;
+        
+        if (defaultGlobalBlocked !== undefined) {
+            await pool.query("UPDATE settings SET value = $1 WHERE key = 'default_global_blocked_slots'", [JSON.stringify(defaultGlobalBlocked)]);
+        }
+        if (weeklyGlobalBlocked !== undefined) {
+            await pool.query("UPDATE settings SET value = $1 WHERE key = 'weekly_global_blocked_slots'", [JSON.stringify(weeklyGlobalBlocked)]);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/admin/students', async (req, res) => {
     try {
         const studentsRes = await pool.query("SELECT * FROM students ORDER BY name ASC");
@@ -280,7 +307,6 @@ app.post('/api/admin/students/save', async (req, res) => {
 
         const trimmedName = name.trim();
 
-        // 1. שמירה בטבלת התלמידים
         if (id) {
             await pool.query(
                 `UPDATE students SET name=$1, default_quota=$2, fixed_lessons=$3, default_time_range=$4 WHERE id=$5`,
@@ -293,7 +319,6 @@ app.post('/api/admin/students/save', async (req, res) => {
             );
         }
 
-        // 2. עדכון/שיבוץ השיעורים הקבועים של התלמיד ביומן
         await pool.query("DELETE FROM appointments WHERE booked_by_name = $1 AND is_fixed = TRUE", [trimmedName]);
         const fixed = fixed_lessons || [];
         for (let f of fixed) {
@@ -400,6 +425,7 @@ app.post('/api/admin/reset-slots', async (req, res) => {
 
         await pool.query("DELETE FROM appointments");
         await pool.query("DELETE FROM weekly_student_config");
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'weekly_global_blocked_slots'", ["[]"]); // איפוס חסימות גלובליות שבועיות
         await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
 
         if (applyFixedLessons) {
