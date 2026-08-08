@@ -24,10 +24,11 @@
         .slot-btn:hover:not(:disabled) { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
         .slot-btn:disabled { background: #f5f5f5; color: #bbb; cursor: not-allowed; }
 
-        .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; box-sizing: border-box; padding: 2px; text-align: center; }
+        .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); box-sizing: border-box; padding: 2px; text-align: center; }
         .block-booked { background-color: #fce8e6; color: #c5221f; border: 1px solid #d93025; cursor: not-allowed; }
+        .block-fixed { background-color: #e6f4ea; color: #137333; border: 1px solid #34a853; cursor: not-allowed; }
         .block-selected { background-color: #8ab4f8; color: #ffffff; border: 1px solid #1a73e8; }
-        .block-custom { background-color: #fef7e0; color: #b06000; border: 1px solid #f29900; }
+        .block-custom { background-color: #fef7e0; color: #b06000; border: 1px solid #f29900; cursor: not-allowed; }
 
         .selected-badge { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; margin: 4px; }
         .remove-badge { cursor: pointer; color: #c5221f; font-weight: bold; }
@@ -52,7 +53,7 @@
 <div class="container">
     <h1>מערכת קביעת שיעורים</h1>
 
-    <!-- מסך התחברות -->
+    <!-- התחברות -->
     <div id="login-section" class="login-box">
         <h3>התחברות למערכת</h3>
         <p style="font-size: 14px; color: #666;">הכנס את שמך המלא בדיוק כפי שמופיע במאגר</p>
@@ -61,7 +62,7 @@
         <div id="login-error" style="color: red; margin-top: 10px; font-size: 14px; display: none;"></div>
     </div>
 
-    <!-- מסך יומן ראשי -->
+    <!-- יומן -->
     <div id="calendar-section" style="display: none;">
         <p class="subtitle" id="welcome-msg"></p>
 
@@ -87,7 +88,7 @@
         </div>
 
         <div class="booking-box">
-            <h3>השיעורים שנבחרו</h3>
+            <h3>השיעורים שנבחרו לקביעה</h3>
             <div id="selected-list"><span style="color: #888;">טרם נבחרו שיעורים נוספים ביומן</span></div>
             <button class="btn-confirm" id="submit-btn" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;" onclick="openConfirmModal()">אישור קביעת השיעורים</button>
             <div id="message"></div>
@@ -95,7 +96,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ אישור -->
 <div class="modal-overlay" id="confirm-modal">
     <div class="modal-content">
         <h3>אישור שיבוץ שיעורים</h3>
@@ -117,8 +117,8 @@
     let isStudentAllowedToBook = true;
 
     const ROW_HEIGHT = 50;
-    const GRID_START_MINS = 8 * 60; // 08:00
-    const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS; // 08:00 to 21:00
+    const GRID_START_MINS = 8 * 60;
+    const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
 
     function timeToMins(t) {
         const [h, m] = t.split(':').map(Number);
@@ -151,9 +151,7 @@
             const res = await fetch(`/api/slots?studentName=${encodeURIComponent(currentStudentName)}`);
             const data = await res.json();
 
-            if (!data.studentData) {
-                return false;
-            }
+            if (!data.studentData) return false;
 
             studentData = data.studentData;
             globalAppointments = data.appointments;
@@ -183,13 +181,11 @@
                 submitBtn.style.opacity = '1';
             }
 
-            // Days Headers
             globalDays.forEach(d => {
                 const hEl = document.getElementById(`h-${d.index}`);
                 if (hEl) hEl.innerText = `${d.name}\n(${d.date})`;
             });
 
-            // Time Column
             const timeCol = document.getElementById('fixed-time-column');
             timeCol.innerHTML = '';
             fixedSlots.forEach(s => {
@@ -213,20 +209,16 @@
             if (!col) continue;
             col.innerHTML = '';
 
-            // 1. Fixed Slot Buttons
-            fixedSlots.forEach((slot, slotIndex) => {
+            fixedSlots.forEach((slot) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'slot-btn';
                 btn.innerText = `${slot.start}`;
 
                 const slotKey = `${day}_${slot.start}`;
-
-                // Check permissions
-                const isAllowedByDefault = studentData.allowedSlots.length === 0 || studentData.allowedSlots.includes(slotKey);
                 const isBlockedExplicitly = studentData.blockedSlots.includes(slotKey);
 
-                if (!isAllowedByDefault || isBlockedExplicitly || !isStudentAllowedToBook) {
+                if (isBlockedExplicitly || !isStudentAllowedToBook) {
                     btn.disabled = true;
                 }
 
@@ -234,33 +226,38 @@
                 col.appendChild(btn);
             });
 
-            // 2. Overlay Existing Appointments (Booked / Custom)
             globalAppointments.filter(a => a.day_index === day).forEach(app => {
                 const startM = timeToMins(app.start_time);
                 const endM = timeToMins(app.end_time);
-
-                // Calculate relative position based on 10 fixed rows
                 const slotIndex = fixedSlots.findIndex(s => s.start === app.start_time);
-                
+
+                const isMine = app.booked_by_name === currentStudentName;
                 const block = document.createElement('div');
-                block.className = `block-overlay ${app.is_custom ? 'block-custom' : 'block-booked'}`;
                 
+                if (isMine) {
+                    block.className = 'block-overlay block-fixed';
+                    block.innerText = `השיעור הקבוע שלך (${app.start_time})`;
+                } else if (app.is_custom) {
+                    block.className = 'block-overlay block-custom';
+                    block.innerText = `תפוס (${app.start_time})`;
+                } else {
+                    block.className = 'block-overlay block-booked';
+                    block.innerText = `תפוס (${app.start_time})`;
+                }
+
                 if (slotIndex !== -1) {
                     block.style.top = `${slotIndex * ROW_HEIGHT}px`;
                     block.style.height = `${ROW_HEIGHT}px`;
                 } else {
-                    // Custom non-fixed slot positioning
                     const topPos = ((startM - GRID_START_MINS) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
                     const height = ((endM - startM) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
                     block.style.top = `${Math.max(0, topPos)}px`;
                     block.style.height = `${Math.max(25, height)}px`;
                 }
 
-                block.innerText = app.booked_by_name === currentStudentName ? `השיעור שלך (${app.start_time})` : `תפוס (${app.start_time})`;
                 col.appendChild(block);
             });
 
-            // 3. Overlay Selected Slots
             selectedSlots.filter(s => s.dayIndex === day).forEach(slot => {
                 const slotIndex = fixedSlots.findIndex(s => s.start === slot.startTime);
                 if (slotIndex !== -1) {
@@ -312,7 +309,7 @@
             return;
         }
 
-        selectedSlots.forEach((slot, index) => {
+        selectedSlots.forEach((slot) => {
             const badge = document.createElement('div');
             badge.className = 'selected-badge';
             badge.innerHTML = `${slot.dayName} ${slot.startTime}-${slot.endTime} <span class="remove-badge" onclick="removeSelectedSlot(${slot.dayIndex}, '${slot.startTime}')">✕</span>`;

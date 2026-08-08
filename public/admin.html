@@ -26,7 +26,7 @@
         .time-cell { background: #fafafa; border-bottom: 1px solid #f1f3f4; border-left: 1px solid #dadce0; text-align: center; font-size: 11px; color: #70757a; height: 50px; display: flex; align-items: center; justify-content: center; }
         .day-column { position: relative; display: grid; grid-template-rows: repeat(10, 50px); border-left: 1px solid #dadce0; }
         
-        .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); box-sizing: border-box; padding: 2px; text-align: center; }
+        .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); box-sizing: border-box; padding: 2px; text-align: center; cursor: pointer; }
         .block-booked { background-color: #fce8e6; color: #c5221f; border: 1px solid #d93025; }
         .block-custom { background-color: #fef7e0; color: #b06000; border: 1px solid #f29900; }
 
@@ -39,9 +39,8 @@
 <body>
 
 <div class="container">
-    <h1>ממשק ניהול ומעקב מורה</h1>
+    <h1>ממשק ניהול ومעקב מורה</h1>
 
-    <!-- בקרת הרשמה ואיפוס -->
     <div class="section-box">
         <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
@@ -51,7 +50,6 @@
         </div>
     </div>
 
-    <!-- הוספת שיעור ידנית בשעות חופשיות -->
     <div class="section-box">
         <h3>הוספת שיעור ידנית ביומן (שעות חופשיות)</h3>
         <form id="custom-slot-form" onsubmit="addCustomSlot(event)" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
@@ -69,7 +67,6 @@
         </form>
     </div>
 
-    <!-- ניהול תלמידים -->
     <div class="section-box">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h3>ניהול תלמידים ומעקב שבועי</h3>
@@ -80,7 +77,6 @@
                 <thead>
                     <tr>
                         <th>שם התלמיד</th>
-                        <th>טלפון</th>
                         <th>מכסה דיפולט</th>
                         <th>מכסה השבוע</th>
                         <th>שיעורים שנקבעו השבוע</th>
@@ -92,7 +88,6 @@
         </div>
     </div>
 
-    <!-- יומן שבועי מלא למנהל -->
     <div class="section-box">
         <h3>לוח שבועי מלא (תצוגת גוגל קלנדר)</h3>
         <div class="calendar-wrapper">
@@ -116,7 +111,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ עריכת/הוספת תלמיד -->
 <div class="modal-overlay" id="student-modal">
     <div class="modal-content">
         <h3 id="student-modal-title">הגדרות תלמיד</h3>
@@ -126,23 +120,26 @@
             <input type="text" id="s-name" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
         </div>
         <div style="text-align: right; margin-bottom: 10px;">
-            <label>מספר טלפון:</label>
-            <input type="tel" id="s-phone" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
-        </div>
-        <div style="text-align: right; margin-bottom: 10px;">
             <label>מכסת שיעורים שבועית (ברירת מחדל):</label>
             <input type="number" id="s-quota" value="2" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
         </div>
 
         <div style="text-align: right; margin-bottom: 10px;">
-            <label>שיעורים קבועים בשבוע (ברירת מחדל):</label>
+            <label>שיעורים קבועים בשבוע (סלוט מובנה או שעה חופשית):</label>
             <div id="fixed-lessons-builder" style="border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-top: 4px;">
-                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                <div style="display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap;">
                     <select id="fl-day" style="flex:1;"><option value="0">ראשון</option><option value="1">שני</option><option value="2">שלישי</option><option value="3">רביעי</option><option value="4">חמישי</option></select>
-                    <select id="fl-slot" style="flex:2;"></select>
-                    <button type="button" class="btn btn-blue" onclick="addFixedLessonRow()">+</button>
+                    <select id="fl-type" onchange="toggleFlType()" style="flex:1;"><option value="slot">סלוט מובנה</option><option value="custom">שעה חופשית</option></select>
                 </div>
-                <div id="fixed-lessons-list" style="font-size: 12px;"></div>
+                <div id="fl-slot-box" style="display: flex; gap: 5px; margin-bottom: 8px;">
+                    <select id="fl-slot" style="flex:1;"></select>
+                </div>
+                <div id="fl-custom-box" style="display: none; gap: 5px; margin-bottom: 8px;">
+                    <input type="time" id="fl-custom-start" style="flex:1;">
+                    <input type="time" id="fl-custom-end" style="flex:1;">
+                </div>
+                <button type="button" class="btn btn-blue" style="width: 100%;" onclick="addFixedLessonRow()">+ הוסף שיעור קבוע</button>
+                <div id="fixed-lessons-list" style="font-size: 12px; margin-top: 10px;"></div>
             </div>
         </div>
 
@@ -153,7 +150,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ דריסה שבועית לתלמיד -->
 <div class="modal-overlay" id="override-modal">
     <div class="modal-content">
         <h3>הגדרות נקודתיות לשבוע זה בלבד</h3>
@@ -173,7 +169,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ איפוס שבוע -->
 <div class="modal-overlay" id="reset-modal">
     <div class="modal-content">
         <h3>איפוס שבוע חדש</h3>
@@ -189,7 +184,6 @@
     </div>
 </div>
 
-<!-- פופ-אפ בקרת גישה -->
 <div class="modal-overlay" id="access-modal">
     <div class="modal-content">
         <h3>בקרת פתיחת ההרשמה</h3>
@@ -241,7 +235,6 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${s.name}</strong></td>
-                <td>${s.phone || '-'}</td>
                 <td>${s.default_quota}</td>
                 <td>${s.effectiveQuota}</td>
                 <td>${lessonsText}</td>
@@ -347,13 +340,11 @@
             const s = studentsList.find(x => x.id === id);
             document.getElementById('student-id').value = s.id;
             document.getElementById('s-name').value = s.name;
-            document.getElementById('s-phone').value = s.phone;
             document.getElementById('s-quota').value = s.default_quota;
             tempFixedLessons = s.fixed_lessons || [];
         } else {
             document.getElementById('student-id').value = '';
             document.getElementById('s-name').value = '';
-            document.getElementById('s-phone').value = '';
             document.getElementById('s-quota').value = '2';
         }
 
@@ -369,10 +360,27 @@
         });
     }
 
+    function toggleFlType() {
+        const type = document.getElementById('fl-type').value;
+        document.getElementById('fl-slot-box').style.display = type === 'slot' ? 'flex' : 'none';
+        document.getElementById('fl-custom-box').style.display = type === 'custom' ? 'flex' : 'none';
+    }
+
     function addFixedLessonRow() {
         const dayIndex = parseInt(document.getElementById('fl-day').value);
-        const [startTime, endTime] = document.getElementById('fl-slot').value.split('_');
-        tempFixedLessons.push({ dayIndex, startTime, endTime });
+        const type = document.getElementById('fl-type').value;
+
+        let startTime, endTime, isCustom = false;
+        if (type === 'slot') {
+            [startTime, endTime] = document.getElementById('fl-slot').value.split('_');
+        } else {
+            startTime = document.getElementById('fl-custom-start').value;
+            endTime = document.getElementById('fl-custom-end').value;
+            isCustom = true;
+            if (!startTime || !endTime) return alert('נא להזין שעות חופשיות תקינות');
+        }
+
+        tempFixedLessons.push({ dayIndex, startTime, endTime, isCustom });
         renderFixedLessonsList();
     }
 
@@ -381,14 +389,13 @@
         div.innerHTML = '';
         const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
         tempFixedLessons.forEach((fl, idx) => {
-            div.innerHTML += `<div>יום ${dayNames[fl.dayIndex]} בשעה ${fl.startTime}-${fl.endTime} <span style="color:red; cursor:pointer;" onclick="tempFixedLessons.splice(${idx},1); renderFixedLessonsList();">✕</span></div>`;
+            div.innerHTML += `<div>יום ${dayNames[fl.dayIndex]} בשעה ${fl.startTime}-${fl.endTime} ${fl.isCustom ? '(שעה חופשית)' : ''} <span style="color:red; cursor:pointer;" onclick="tempFixedLessons.splice(${idx},1); renderFixedLessonsList();">✕</span></div>`;
         });
     }
 
     async function saveStudent() {
         const id = document.getElementById('student-id').value;
         const name = document.getElementById('s-name').value.trim();
-        const phone = document.getElementById('s-phone').value.trim();
         const default_quota = parseInt(document.getElementById('s-quota').value);
 
         if (!name) return alert('נא להזין שם תלמיד');
@@ -396,7 +403,7 @@
         await fetch('/api/admin/students/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id ? parseInt(id) : null, name, phone, default_quota, fixed_lessons: tempFixedLessons })
+            body: JSON.stringify({ id: id ? parseInt(id) : null, name, default_quota, fixed_lessons: tempFixedLessons })
         });
 
         closeModal('student-modal');
