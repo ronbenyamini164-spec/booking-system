@@ -115,7 +115,7 @@
                 <span id="status-text" class="status-badge">טוען...</span>
             </div>
             <div>
-                <button class="btn btn-toggle" onclick="toggleStatus()">פפתח / סגור הרשמה</button>
+                <button class="btn btn-toggle" onclick="toggleStatus()">פתח / סגור הרשמה</button>
                 <button class="btn btn-reset" onclick="openResetModal()">איפוס שבוע חדש</button>
             </div>
         </div>
@@ -216,25 +216,35 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isOpen: newStatus })
             });
+            const data = await res.json();
             if (res.ok) {
                 await loadAdminData();
             } else {
-                alert('שגיאה בשינוי הסטטוס');
+                alert('שגיאה בשינוי הסטטוס: ' + (data.error || 'שגיאה לא ידועה'));
             }
         } catch (err) {
-            console.error("Error toggling status:", err);
+            alert('שגיאה בתקשורת: ' + err.message);
         }
     }
 
     async function updateBuffer() {
-        const bufferTime = document.getElementById('buffer-input').value;
-        await fetch('/api/admin/update-buffer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bufferTime: parseInt(bufferTime) })
-        });
-        alert(`זמן ההפסקה עודכן ל-${bufferTime} דקות!`);
-        loadAdminData();
+        try {
+            const bufferTime = document.getElementById('buffer-input').value;
+            const res = await fetch('/api/admin/update-buffer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bufferTime: parseInt(bufferTime) })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`זמן ההפסקה עודכן ל-${bufferTime} דקות!`);
+                loadAdminData();
+            } else {
+                alert('שגיאה: ' + (data.error || 'נכשל'));
+            }
+        } catch (err) {
+            alert('שגיאה בתקשורת: ' + err.message);
+        }
     }
 
     function openResetModal() {
@@ -261,25 +271,42 @@
             return;
         }
 
-        await fetch('/api/admin/reset-slots', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sundayDate })
-        });
-
-        closeResetModal();
-        alert('הלוח אופס והתאריכים עודכנו לשבוע החדש!');
-        loadAdminData();
+        try {
+            const res = await fetch('/api/admin/reset-slots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sundayDate })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                closeResetModal();
+                alert('הלוח אופס והתאריכים עודכנו לשבוע החדש!');
+                loadAdminData();
+            } else {
+                alert('שגיאה באיפוס: ' + (data.error || 'נכשל'));
+            }
+        } catch (err) {
+            alert('שגיאה בתקשורת: ' + err.message);
+        }
     }
 
     async function deleteAppointment(id) {
         if (confirm('למחוק את השיעור הזה?')) {
-            await fetch('/api/admin/delete-appointment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
-            });
-            loadAdminData();
+            try {
+                const res = await fetch('/api/admin/delete-appointment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    loadAdminData();
+                } else {
+                    alert('שגיאה במחיקה: ' + (data.error || 'נכשל'));
+                }
+            } catch (err) {
+                alert('שגיאה בתקשורת: ' + err.message);
+            }
         }
     }
 

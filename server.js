@@ -36,13 +36,25 @@ async function initDb() {
             )
         `);
 
-        await pool.query("INSERT INTO settings (key, value) VALUES ('is_open', 'true') ON CONFLICT (key) DO NOTHING");
-        await pool.query("INSERT INTO settings (key, value) VALUES ('buffer_time', '15') ON CONFLICT (key) DO NOTHING");
-        await pool.query("INSERT INTO settings (key, value) VALUES ('sunday_date', '') ON CONFLICT (key) DO NOTHING");
+        // בדיקה והכנסת ערכי ברירת מחדל בצורה בטוחה
+        const openCheck = await pool.query("SELECT * FROM settings WHERE key = 'is_open'");
+        if (openCheck.rows.length === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('is_open', 'true')");
+        }
+
+        const bufferCheck = await pool.query("SELECT * FROM settings WHERE key = 'buffer_time'");
+        if (bufferCheck.rows.length === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('buffer_time', '15')");
+        }
+
+        const sundayCheck = await pool.query("SELECT * FROM settings WHERE key = 'sunday_date'");
+        if (sundayCheck.rows.length === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('sunday_date', '')");
+        }
         
         console.log('Connected successfully to Cloud PostgreSQL!');
     } catch (err) {
-        console.error('Error initializing database:', err.message);
+        console.error('Error initializing database:', err);
     }
 }
 
@@ -128,7 +140,7 @@ app.post('/api/book', async (req, res) => {
 
         if (userApps.rows.length + slots.length > 2) {
             return res.status(400).json({ 
-                error: `כבר רשומים עבורך ${userApps.rows.length} שיעורים. המכסה المרבית היא 2 שיעורים בשבוע.` 
+                error: `כבר רשומים עבורך ${userApps.rows.length} שיעורים. המכסה המרבית היא 2 שיעורים בשבוע.` 
             });
         }
 
@@ -165,44 +177,45 @@ app.post('/api/book', async (req, res) => {
     }
 });
 
-// API למנהל: שינוי זמן ההפסקה (עם UPSERT בטוח)
+// API למנהל: שינוי זמן ההפסקה
 app.post('/api/admin/update-buffer', async (req, res) => {
     try {
         const { bufferTime } = req.body;
-        await pool.query(`
-            INSERT INTO settings (key, value) VALUES ('buffer_time', $1)
-            ON CONFLICT (key) DO UPDATE SET value = $1
-        `, [String(bufferTime)]);
+        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'buffer_time'", [String(bufferTime)]);
+        if (updateRes.rowCount === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('buffer_time', $1)", [String(bufferTime)]);
+        }
         res.json({ success: true, bufferTime });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: שינוי מצב פתוח/סגור (עם UPSERT בטוח)
+// API למנהל: שינוי מצב פתוח/סגור
 app.post('/api/admin/toggle-status', async (req, res) => {
     try {
         const { isOpen } = req.body;
         const value = isOpen ? 'true' : 'false';
-        await pool.query(`
-            INSERT INTO settings (key, value) VALUES ('is_open', $1)
-            ON CONFLICT (key) DO UPDATE SET value = $1
-        `, [value]);
+        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'is_open'", [value]);
+        if (updateRes.rowCount === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('is_open', $1)", [value]);
+        }
         res.json({ success: true, isOpen });
     } catch (err) {
+        console.error("Error in toggle-status:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: איפוס מלא (עם UPSERT בטוח)
+// API למנהל: איפוס מלא
 app.post('/api/admin/reset-slots', async (req, res) => {
     try {
         const { sundayDate } = req.body;
         await pool.query("DELETE FROM appointments");
-        await pool.query(`
-            INSERT INTO settings (key, value) VALUES ('sunday_date', $1)
-            ON CONFLICT (key) DO UPDATE SET value = $1
-        `, [sundayDate || '']);
+        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
+        if (updateRes.rowCount === 0) {
+            await pool.query("INSERT INTO settings (key, value) VALUES ('sunday_date', $1)", [sundayDate || '']);
+        }
         res.json({ success: true, message: 'היומן אופס בהצלחה והתאריך עודכן!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
