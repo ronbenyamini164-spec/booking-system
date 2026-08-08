@@ -1,4 +1,4 @@
-const express = require('express');
+העconst express = require('express');
 const { Pool } = require('pg');
 const app = express();
 
@@ -280,6 +280,7 @@ app.post('/api/admin/students/save', async (req, res) => {
 
         const trimmedName = name.trim();
 
+        // 1. שמירה בטבלת התלמידים
         if (id) {
             await pool.query(
                 `UPDATE students SET name=$1, default_quota=$2, fixed_lessons=$3, default_time_range=$4 WHERE id=$5`,
@@ -292,6 +293,16 @@ app.post('/api/admin/students/save', async (req, res) => {
             );
         }
 
+        // 2. עדכון/שיבוץ השיעורים הקבועים של התלמיד ביומן
+        await pool.query("DELETE FROM appointments WHERE booked_by_name = $1 AND is_fixed = TRUE", [trimmedName]);
+        const fixed = fixed_lessons || [];
+        for (let f of fixed) {
+            await pool.query(
+                `INSERT INTO appointments (day_index, start_time, end_time, booked_by_name, is_custom, is_fixed) VALUES ($1, $2, $3, $4, $5, TRUE)`,
+                [f.dayIndex, f.startTime, f.endTime, trimmedName, f.isCustom || false]
+            );
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -301,6 +312,12 @@ app.post('/api/admin/students/save', async (req, res) => {
 app.post('/api/admin/students/delete', async (req, res) => {
     try {
         const { id } = req.body;
+        const studentRes = await pool.query("SELECT name FROM students WHERE id = $1", [id]);
+        if (studentRes.rows.length > 0) {
+            const studentName = studentRes.rows[0].name;
+            await pool.query("DELETE FROM appointments WHERE booked_by_name = $1", [studentName]);
+            await pool.query("DELETE FROM weekly_student_config WHERE student_name = $1", [studentName]);
+        }
         await pool.query("DELETE FROM students WHERE id = $1", [id]);
         res.json({ success: true });
     } catch (err) {
