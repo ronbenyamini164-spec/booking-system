@@ -7,7 +7,7 @@ app.use(express.static('public'));
 
 const LESSON_DURATION = 60; // משך שיעור בשעות (60 דקות)
 
-// התחברות לבסיס הנתונים בענן (הקישור יימשך ממשתני הסביבה או מ-Neon)
+// התחברות לבסיס הנתונים בענן
 const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({
