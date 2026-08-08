@@ -225,21 +225,29 @@
                 const slotStartM = timeToMins(slot.start);
                 const slotEndM = timeToMins(slot.end);
 
+                // 1. בדיקת טווח שעות דיפולטיבי
                 let isAllowed = (slotStartM >= defStartM && slotEndM <= defEndM);
 
-                const customWeeklyRange = studentData.allowedCustomRanges?.find(r => parseInt(r.dayIndex) === day);
-                if (customWeeklyRange) {
-                    const cStartM = timeToMins(customWeeklyRange.start);
-                    const cEndM = timeToMins(customWeeklyRange.end);
-                    if (slotStartM >= cStartM && slotEndM <= cEndM) {
+                // 2. בדיקת דריסה שבועית במידה ופתחת טווח מיוחד לשבוע זה (בודק מול כל הטווחים של יום זה)
+                if (studentData.allowedCustomRanges && Array.isArray(studentData.allowedCustomRanges)) {
+                    const isCustomRangeMatch = studentData.allowedCustomRanges.some(r => {
+                        if (parseInt(r.dayIndex) !== day) return false;
+                        const cStartM = timeToMins(r.start);
+                        const cEndM = timeToMins(r.end);
+                        // מורשה אם שעת ההתחלה של הסלוט נמצאת בתוך הטווח שנפתח
+                        return (slotStartM >= cStartM && slotStartM < cEndM);
+                    });
+
+                    if (isCustomRangeMatch) {
                         isAllowed = true;
                     }
                 }
 
+                // 3. חסימה אם הסלוט נחסם ספציפית, אם האתר סגור, או אם הסלוט לא מורשה
                 const slotKey = `${day}_${slot.start}`;
                 if (studentData.blockedSlots.includes(slotKey) || !isStudentAllowedToBook || !isAllowed) {
                     btn.disabled = true;
-                    btn.innerText = ''; // מנקה טקסט מכפתור חסום
+                    btn.innerText = ''; 
                 } else {
                     btn.innerText = `${slot.start}`;
                 }
