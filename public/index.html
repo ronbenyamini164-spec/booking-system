@@ -53,7 +53,6 @@
 <div class="container">
     <h1>מערכת קביעת שיעורים</h1>
 
-    <!-- התחברות -->
     <div id="login-section" class="login-box">
         <h3>התחברות למערכת</h3>
         <p style="font-size: 14px; color: #666;">הכנס את שמך המלא בדיוק כפי שמופיע במאגר</p>
@@ -62,7 +61,6 @@
         <div id="login-error" style="color: red; margin-top: 10px; font-size: 14px; display: none;"></div>
     </div>
 
-    <!-- יומן -->
     <div id="calendar-section" style="display: none;">
         <p class="subtitle" id="welcome-msg"></p>
 
@@ -172,7 +170,7 @@
                 submitBtn.style.opacity = '0.5';
             } else if (studentData.remainingQuota === 0) {
                 banner.className = 'banner-info';
-                banner.innerText = 'ℹ️ ניצלת את מכסת השיעורים המרבית שלך לשבוע זה.';
+                banner.innerText = 'קבעת את כל השיעורים לשבוע זה!';
                 banner.style.display = 'block';
                 submitBtn.disabled = true;
             } else {
@@ -204,6 +202,9 @@
     }
 
     function renderGrid() {
+        const defStartM = timeToMins(studentData.defaultTimeRange?.start || "08:00");
+        const defEndM = timeToMins(studentData.defaultTimeRange?.end || "21:00");
+
         for (let day = 0; day < 5; day++) {
             const col = document.getElementById(`col-${day}`);
             if (!col) continue;
@@ -215,10 +216,26 @@
                 btn.className = 'slot-btn';
                 btn.innerText = `${slot.start}`;
 
+                const slotStartM = timeToMins(slot.start);
+                const slotEndM = timeToMins(slot.end);
+
+                // בדיקת טווח דיפולטיבי
+                let isAllowedByTimeRange = (slotStartM >= defStartM && slotEndM <= defEndM);
+
+                // בדיקת דריסה שבועית לטווח חופשי
+                const customWeeklyRange = studentData.allowedCustomRanges?.find(r => r.dayIndex === day);
+                if (customWeeklyRange) {
+                    const cStartM = timeToMins(customWeeklyRange.start);
+                    const cEndM = timeToMins(customWeeklyRange.end);
+                    if (slotStartM >= cStartM && slotEndM <= cEndM) {
+                        isAllowedByTimeRange = true;
+                    }
+                }
+
                 const slotKey = `${day}_${slot.start}`;
                 const isBlockedExplicitly = studentData.blockedSlots.includes(slotKey);
 
-                if (isBlockedExplicitly || !isStudentAllowedToBook) {
+                if (!isAllowedByTimeRange || isBlockedExplicitly || !isStudentAllowedToBook) {
                     btn.disabled = true;
                 }
 

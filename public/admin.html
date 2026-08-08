@@ -33,13 +33,13 @@
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); box-sizing: border-box; }
         
-        .slot-checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: right; max-height: 180px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 6px; }
+        .slot-checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: right; max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ממשק ניהול ومעקב מורה</h1>
+    <h1>ממשק ניהול ומעקב מורה</h1>
 
     <div class="section-box">
         <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
@@ -125,6 +125,15 @@
         </div>
 
         <div style="text-align: right; margin-bottom: 10px;">
+            <label>טווח שעות מורשה ברירת מחדל (לתלמיד זה):</label>
+            <div style="display: flex; gap: 10px; margin-top: 4px;">
+                <input type="time" id="s-range-start" value="08:00" style="flex:1; padding: 6px;">
+                <span style="align-self: center;">עד</span>
+                <input type="time" id="s-range-end" value="21:00" style="flex:1; padding: 6px;">
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-bottom: 10px;">
             <label>שיעורים קבועים בשבוע (סלוט מובנה או שעה חופשית):</label>
             <div id="fixed-lessons-builder" style="border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-top: 4px;">
                 <div style="display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -158,6 +167,18 @@
             <label>שינוי מכסה לשבוע זה:</label>
             <input type="number" id="ov-quota" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
         </div>
+        
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>פתיחת טווח שעות מיוחד לשבוע זה (לפי יום):</label>
+            <div style="display: flex; gap: 5px; margin-top: 4px;">
+                <select id="ov-range-day" style="flex:1;"><option value="0">ראשון</option><option value="1">שני</option><option value="2">שלישי</option><option value="3">רביעי</option><option value="4">חמישי</option></select>
+                <input type="time" id="ov-range-start" style="flex:1;">
+                <input type="time" id="ov-range-end" style="flex:1;">
+                <button type="button" class="btn btn-blue" onclick="addCustomWeeklyRange()">+</button>
+            </div>
+            <div id="ov-custom-ranges-list" style="font-size: 12px; margin-top: 5px;"></div>
+        </div>
+
         <div style="text-align: right; margin-bottom: 10px;">
             <label>חסימת סלוטים ספציפיים לשבוע זה:</label>
             <div class="slot-checkbox-grid" id="ov-blocked-grid"></div>
@@ -204,6 +225,7 @@
     let globalData = null;
     let studentsList = [];
     let tempFixedLessons = [];
+    let tempCustomWeeklyRanges = [];
 
     const ROW_HEIGHT = 50;
     const GRID_START_MINS = 8 * 60;
@@ -341,11 +363,15 @@
             document.getElementById('student-id').value = s.id;
             document.getElementById('s-name').value = s.name;
             document.getElementById('s-quota').value = s.default_quota;
+            document.getElementById('s-range-start').value = s.default_time_range?.start || "08:00";
+            document.getElementById('s-range-end').value = s.default_time_range?.end || "21:00";
             tempFixedLessons = s.fixed_lessons || [];
         } else {
             document.getElementById('student-id').value = '';
             document.getElementById('s-name').value = '';
             document.getElementById('s-quota').value = '2';
+            document.getElementById('s-range-start').value = "08:00";
+            document.getElementById('s-range-end').value = "21:00";
         }
 
         renderFixedLessonsList();
@@ -397,13 +423,21 @@
         const id = document.getElementById('student-id').value;
         const name = document.getElementById('s-name').value.trim();
         const default_quota = parseInt(document.getElementById('s-quota').value);
+        const startRange = document.getElementById('s-range-start').value;
+        const endRange = document.getElementById('s-range-end').value;
 
         if (!name) return alert('נא להזין שם תלמיד');
 
         await fetch('/api/admin/students/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id ? parseInt(id) : null, name, default_quota, fixed_lessons: tempFixedLessons })
+            body: JSON.stringify({
+                id: id ? parseInt(id) : null,
+                name,
+                default_quota,
+                fixed_lessons: tempFixedLessons,
+                default_time_range: { start: startRange, end: endRange }
+            })
         });
 
         closeModal('student-modal');
@@ -425,6 +459,9 @@
         const s = studentsList.find(x => x.name === studentName);
         document.getElementById('ov-student-name').value = studentName;
         document.getElementById('ov-quota').value = s.effectiveQuota;
+        tempCustomWeeklyRanges = s.allowedCustomRanges || [];
+
+        renderCustomWeeklyRangesList();
 
         const grid = document.getElementById('ov-blocked-grid');
         grid.innerHTML = '';
@@ -441,6 +478,25 @@
         document.getElementById('override-modal').style.display = 'flex';
     }
 
+    function addCustomWeeklyRange() {
+        const dayIndex = parseInt(document.getElementById('ov-range-day').value);
+        const start = document.getElementById('ov-range-start').value;
+        const end = document.getElementById('ov-range-end').value;
+        if (!start || !end) return alert('נא לבחור שעות תקינות');
+
+        tempCustomWeeklyRanges.push({ dayIndex, start, end });
+        renderCustomWeeklyRangesList();
+    }
+
+    function renderCustomWeeklyRangesList() {
+        const div = document.getElementById('ov-custom-ranges-list');
+        div.innerHTML = '';
+        const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
+        tempCustomWeeklyRanges.forEach((r, idx) => {
+            div.innerHTML += `<div>יום ${dayNames[r.dayIndex]} בין ${r.start}-${r.end} <span style="color:red; cursor:pointer;" onclick="tempCustomWeeklyRanges.splice(${idx},1); renderCustomWeeklyRangesList();">✕</span></div>`;
+        });
+    }
+
     async function saveWeeklyOverride() {
         const student_name = document.getElementById('ov-student-name').value;
         const quota_override = parseInt(document.getElementById('ov-quota').value);
@@ -451,7 +507,12 @@
         await fetch('/api/admin/students/weekly-override', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_name, quota_override, blocked_slots_override })
+            body: JSON.stringify({
+                student_name,
+                quota_override,
+                blocked_slots_override,
+                allowed_custom_ranges: tempCustomWeeklyRanges
+            })
         });
 
         closeModal('override-modal');

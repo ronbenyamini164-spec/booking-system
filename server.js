@@ -30,7 +30,8 @@ async function initDb() {
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(100) UNIQUE NOT NULL,
                 default_quota INTEGER DEFAULT 2,
-                fixed_lessons JSONB DEFAULT '[]'
+                fixed_lessons JSONB DEFAULT '[]',
+                default_time_range JSONB DEFAULT '{"start": "08:00", "end": "21:00"}'
             );
 
             CREATE TABLE IF NOT EXISTS appointments (
@@ -46,7 +47,8 @@ async function initDb() {
             CREATE TABLE IF NOT EXISTS weekly_student_config (
                 student_name VARCHAR(100) PRIMARY KEY,
                 quota_override INTEGER,
-                blocked_slots_override JSONB
+                blocked_slots_override JSONB,
+                allowed_custom_ranges JSONB DEFAULT '[]'
             );
 
             CREATE TABLE IF NOT EXISTS settings (
@@ -55,9 +57,10 @@ async function initDb() {
             );
         `);
 
-        // תיקון אוטומטי לטבלאות קיימות
         await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT FALSE;`);
         await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS is_fixed BOOLEAN DEFAULT FALSE;`);
+        await pool.query(`ALTER TABLE students ADD COLUMN IF NOT EXISTS default_time_range JSONB DEFAULT '{"start": "08:00", "end": "21:00"}';`);
+        await pool.query(`ALTER TABLE weekly_student_config ADD COLUMN IF NOT EXISTS allowed_custom_ranges JSONB DEFAULT '[]';`);
 
         const defaults = [
             ["is_open", "true"],
@@ -72,7 +75,7 @@ async function initDb() {
                 await pool.query("INSERT INTO settings (key, value) VALUES ($1, $2)", [k, v]);
             }
         }
-        console.log('Database initialized & updated successfully!');
+        console.log('Database initialized successfully!');
     } catch (err) {
         console.error('Error initializing database:', err);
     }
@@ -100,7 +103,6 @@ function calculateDatesFromSunday(sundayDateStr) {
     });
 }
 
-// קבלת נתונים לתלמיד / מנהל
 app.get('/api/slots', async (req, res) => {
     try {
         const studentName = req.query.studentName ? req.query.studentName.trim() : null;
@@ -136,6 +138,8 @@ app.get('/api/slots', async (req, res) => {
 
                 const effectiveQuota = config.quota_override !== null && config.quota_override !== undefined ? config.quota_override : s.default_quota;
                 const blockedSlots = config.blocked_slots_override || [];
+                const allowedCustomRanges = config.allowed_custom_ranges || [];
+                const defaultTimeRange = s.default_time_range || { start: "08:00", end: "21:00" };
 
                 const currentBookings = appsRes.rows.filter(a => a.booked_by_name === studentName).length;
                 const remainingQuota = Math.max(0, effectiveQuota - currentBookings);
@@ -145,7 +149,9 @@ app.get('/api/slots', async (req, res) => {
                     effectiveQuota,
                     currentBookings,
                     remainingQuota,
-                    blockedSlots
+                    blockedSlots,
+                    defaultTimeRange,
+                    allowedCustomRanges
                 };
             }
         }
@@ -166,7 +172,6 @@ app.get('/api/slots', async (req, res) => {
     }
 });
 
-// קביעת שיעור ע"י תלמיד
 app.post('/api/book', async (req, res) => {
     try {
         const { studentName, slots } = req.body;
@@ -257,6 +262,7 @@ app.get('/api/admin/students', async (req, res) => {
                 ...s,
                 effectiveQuota: config.quota_override !== null && config.quota_override !== undefined ? config.quota_override : s.default_quota,
                 blockedSlots: config.blocked_slots_override || [],
+                allowedCustomRanges: config.allowed_custom_ranges || [],
                 bookedLessons: studentApps
             };
         });
@@ -269,20 +275,20 @@ app.get('/api/admin/students', async (req, res) => {
 
 app.post('/api/admin/students/save', async (req, res) => {
     try {
-        const { id, name, default_quota, fixed_lessons } = req.body;
+        const { id, name, default_quota, fixed_lessons, default_time_range } = req.body;
         if (!name) return res.status(400).json({ error: 'שם תלמיד הוא שדה חובה' });
 
         const trimmedName = name.trim();
 
         if (id) {
             await pool.query(
-                `UPDATE students SET name=$1, default_quota=$2, fixed_lessons=$3 WHERE id=$4`,
-                [trimmedName, default_quota || 2, JSON.stringify(fixed_lessons || []), id]
+                `UPDATE students SET name=$1, default_quota=$2, fixed_lessons=$3, default_time_range=$4 WHERE id=$5`,
+                [trimmedName, default_quota || 2, JSON.stringify(fixed_lessons || []), JSON.stringify(default_time_range || {start:"08:00", end:"21:00"}), id]
             );
         } else {
             await pool.query(
-                `INSERT INTO students (name, default_quota, fixed_lessons) VALUES ($1, $2, $3)`,
-                [trimmedName, default_quota || 2, JSON.stringify(fixed_lessons || [])]
+                `INSERT INTO students (name, default_quota, fixed_lessons, default_time_range) VALUES ($1, $2, $3, $4)`,
+                [trimmedName, default_quota || 2, JSON.stringify(fixed_lessons || []), JSON.stringify(default_time_range || {start:"08:00", end:"21:00"})]
             );
         }
 
@@ -304,15 +310,16 @@ app.post('/api/admin/students/delete', async (req, res) => {
 
 app.post('/api/admin/students/weekly-override', async (req, res) => {
     try {
-        const { student_name, quota_override, blocked_slots_override } = req.body;
+        const { student_name, quota_override, blocked_slots_override, allowed_custom_ranges } = req.body;
         
         await pool.query(`
-            INSERT INTO weekly_student_config (student_name, quota_override, blocked_slots_override)
-            VALUES ($1, $2, $3)
+            INSERT INTO weekly_student_config (student_name, quota_override, blocked_slots_override, allowed_custom_ranges)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (student_name) DO UPDATE SET
                 quota_override = EXCLUDED.quota_override,
-                blocked_slots_override = EXCLUDED.blocked_slots_override
-        `, [student_name, quota_override, JSON.stringify(blocked_slots_override || [])]);
+                blocked_slots_override = EXCLUDED.blocked_slots_override,
+                allowed_custom_ranges = EXCLUDED.allowed_custom_ranges
+        `, [student_name, quota_override, JSON.stringify(blocked_slots_override || []), JSON.stringify(allowed_custom_ranges || [])]);
 
         res.json({ success: true });
     } catch (err) {
