@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ממשק מנהל - ניהול שיעורים</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        h1 { text-align: center; color: #333; }
+        .controls {
+            background: #eef2f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .control-row:last-child { margin-bottom: 0; }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .status-open { background: #d4edda; color: #155724; }
+        .status-closed { background: #f8d7da; color: #721c24; }
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-toggle { background: #1a73e8; color: white; }
+        .btn-reset { background: #dc3545; color: white; }
+        .btn-save { background: #34c759; color: white; }
+        .btn-ical { background: #6f42c1; color: white; text-decoration: none; display: inline-block; padding: 10px 16px; border-radius: 6px; font-weight: bold; }
+        
+        input[type="number"], input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: right;
+        }
+        th { background-color: #f8f9fa; }
+        .delete-btn {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* פופ-אפ איפוס */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 350px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ממשק ניהול - שיעורים שנקבעו</h1>
+
+    <div class="controls">
+        <div class="control-row">
+            <div>
+                סטטוס האתר כרגע: 
+                <span id="status-text" class="status-badge">טוען...</span>
+            </div>
+            <div>
+                <button class="btn btn-toggle" onclick="toggleStatus()">פתח / סגור הרשמה</button>
+                <button class="btn btn-reset" onclick="openResetModal()">איפוס שבוע חדש</button>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+
+        <div class="control-row">
+            <div>
+                <label style="font-weight: bold;">זמן הפסקה בין שיעורים (בדקות): </label>
+                <input type="number" id="buffer-input" min="0" max="60" value="15" style="width: 70px; text-align: center;">
+                <button class="btn btn-save" onclick="updateBuffer()" style="margin-right: 5px;">שמור הפסקה</button>
+            </div>
+            <div>
+                <a href="/api/admin/export-ical" class="btn-ical">📅 הורד קובץ יומן (Apple / Google)</a>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>יום ותאריך</th>
+                <th>שעת התחלה</th>
+                <th>שעת סיום</th>
+                <th>שם התלמיד</th>
+                <th>טלפון</th>
+                <th>פעולות</th>
+            </tr>
+        </thead>
+        <tbody id="admin-table-body">
+            <!-- הנתונים יוטענו לכאן -->
+        </tbody>
+    </table>
+</div>
+
+<!-- פופ-אפ איפוס ובחירת תאריך יום ראשון -->
+<div class="modal-overlay" id="reset-modal">
+    <div class="modal-content">
+        <h3>איפוס הלוח לשבוע חדש</h3>
+        <p>מחיקת כל השיעורים הקיימים ובחירת תאריך יום ראשון הקרוב:</p>
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold;">תאריך יום ראשון:</label>
+            <input type="date" id="sunday-date-input">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-reset" style="flex:1;" onclick="confirmReset()">אפס יומן עכשיו</button>
+            <button class="btn" style="flex:1; background:#6c757d; color:white;" onclick="closeResetModal()">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentIsOpen = true;
+
+    async function loadAdminData() {
+        const res = await fetch('/api/slots');
+        const data = await res.json();
+        
+        currentIsOpen = data.isOpen;
+        document.getElementById('buffer-input').value = data.bufferTime;
+
+        const statusSpan = document.getElementById('status-text');
+        statusSpan.innerText = currentIsOpen ? 'פתוח להרשמה' : 'סגור (מצב צפייה בלבד)';
+        statusSpan.className = `status-badge ${currentIsOpen ? 'status-open' : 'status-closed'}`;
+
+        const tbody = document.getElementById('admin-table-body');
+        tbody.innerHTML = '';
+
+        if (data.appointments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">אין שיעורים רשומים השבוע</td></tr>';
+            return;
+        }
+
+        data.appointments.forEach(app => {
+            const dayInfo = data.days.find(d => d.index === app.day_index);
+            const tr = document.createElement('tr');
+            
+            tr.innerHTML = `
+                <td><strong>${dayInfo ? dayInfo.name + (dayInfo.date ? ' (' + dayInfo.date + ')' : '') : ''}</strong></td>
+                <td>${app.start_time}</td>
+                <td>${app.end_time}</td>
+                <td>${app.booked_by_name}</td>
+                <td><a href="tel:${app.booked_by_phone}">${app.booked_by_phone}</a></td>
+                <td><button class="delete-btn" onclick="deleteAppointment(${app.id})">מחק שיעור</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function toggleStatus() {
+        await fetch('/api/admin/toggle-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isOpen: !currentIsOpen })
+        });
+        loadAdminData();
+    }
+
+    async function updateBuffer() {
+        const bufferTime = document.getElementById('buffer-input').value;
+        await fetch('/api/admin/update-buffer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bufferTime: parseInt(bufferTime) })
+        });
+        alert(`זמן ההפסקה עודכן ל-${bufferTime} דקות!`);
+        loadAdminData();
+    }
+
+    function openResetModal() {
+        // ברירת מחדל: תאריך של יום ראשון הקרוב
+        const today = new Date();
+        const sunday = new Date();
+        sunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
+        
+        const y = sunday.getFullYear();
+        const m = String(sunday.getMonth() + 1).padStart(2, '0');
+        const d = String(sunday.getDate()).padStart(2, '0');
+        
+        document.getElementById('sunday-date-input').value = `${y}-${m}-${d}`;
+        document.getElementById('reset-modal').style.display = 'flex';
+    }
+
+    function closeResetModal() {
+        document.getElementById('reset-modal').style.display = 'none';
+    }
+
+    async function confirmReset() {
+        const sundayDate = document.getElementById('sunday-date-input').value;
+        if (!sundayDate) {
+            alert('חובה לבחור תאריך ליום ראשון');
+            return;
+        }
+
+        await fetch('/api/admin/reset-slots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sundayDate })
+        });
+
+        closeResetModal();
+        alert('הלוח אופס והתאריכים עודכנו לשבוע החדש!');
+        loadAdminData();
+    }
+
+    async function deleteAppointment(id) {
+        if (confirm('למחוק את השיעור הזה?')) {
+            await fetch('/api/admin/delete-appointment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            loadAdminData();
+        }
+    }
+
+    loadAdminData();
+</script>
+
+</body>
+</html>
