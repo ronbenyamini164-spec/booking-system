@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const LESSON_DURATION = 60; // משך שיעור בשעות (60 דקות)
+const LESSON_DURATION = 60; // משך שיעור (60 דקות)
 
 // התחברות לבסיס הנתונים בענן
 const connectionString = process.env.DATABASE_URL;
@@ -15,7 +15,7 @@ const pool = new Pool({
     ssl: connectionString ? { rejectUnauthorized: false } : false
 });
 
-// יצירת טבלאות במידה ואינן קיימות
+// יצירת טבלאות והגדרות בסיסיות במידה ואינן קיימות
 async function initDb() {
     try {
         await pool.query(`
@@ -128,7 +128,7 @@ app.post('/api/book', async (req, res) => {
 
         if (userApps.rows.length + slots.length > 2) {
             return res.status(400).json({ 
-                error: `כבר רשומים עבורך ${userApps.rows.length} שיעורים. המכסה המרבית היא 2 שיעורים בשבוע.` 
+                error: `כבר רשומים עבורך ${userApps.rows.length} שיעורים. המכסה المרבית היא 2 שיעורים בשבוע.` 
             });
         }
 
@@ -165,35 +165,44 @@ app.post('/api/book', async (req, res) => {
     }
 });
 
-// API למנהל: שינוי זמן ההפסקה
+// API למנהל: שינוי זמן ההפסקה (עם UPSERT בטוח)
 app.post('/api/admin/update-buffer', async (req, res) => {
     try {
         const { bufferTime } = req.body;
-        await pool.query("UPDATE settings SET value = $1 WHERE key = 'buffer_time'", [String(bufferTime)]);
+        await pool.query(`
+            INSERT INTO settings (key, value) VALUES ('buffer_time', $1)
+            ON CONFLICT (key) DO UPDATE SET value = $1
+        `, [String(bufferTime)]);
         res.json({ success: true, bufferTime });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: שינוי מצב פתוח/סגור
+// API למנהל: שינוי מצב פתוח/סגור (עם UPSERT בטוח)
 app.post('/api/admin/toggle-status', async (req, res) => {
     try {
         const { isOpen } = req.body;
         const value = isOpen ? 'true' : 'false';
-        await pool.query("UPDATE settings SET value = $1 WHERE key = 'is_open'", [value]);
+        await pool.query(`
+            INSERT INTO settings (key, value) VALUES ('is_open', $1)
+            ON CONFLICT (key) DO UPDATE SET value = $1
+        `, [value]);
         res.json({ success: true, isOpen });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: איפוס מלא
+// API למנהל: איפוס מלא (עם UPSERT בטוח)
 app.post('/api/admin/reset-slots', async (req, res) => {
     try {
         const { sundayDate } = req.body;
         await pool.query("DELETE FROM appointments");
-        await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
+        await pool.query(`
+            INSERT INTO settings (key, value) VALUES ('sunday_date', $1)
+            ON CONFLICT (key) DO UPDATE SET value = $1
+        `, [sundayDate || '']);
         res.json({ success: true, message: 'היומן אופס בהצלחה והתאריך עודכן!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
