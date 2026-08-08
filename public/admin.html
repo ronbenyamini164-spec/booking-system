@@ -3,365 +3,518 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ממשק מנהל - ניהול שיעורים</title>
+    <title>ממשק מנהל - ניהול מערכת שיעורים</title>
     <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 15px;
-            direction: rtl;
-        }
-        .container {
-            max-width: 950px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            box-sizing: border-box;
-        }
-        h1 { text-align: center; color: #333; font-size: 22px; margin-top: 5px; }
-        .controls {
-            background: #eef2f5;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .control-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .control-row:last-child { margin-bottom: 0; }
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-        @media(min-width: 600px) {
-            .btn-group { width: auto; }
-        }
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            display: inline-block;
-        }
-        .status-open { background: #d4edda; color: #155724; }
-        .status-closed { background: #f8d7da; color: #721c24; }
-        .btn {
-            padding: 10px 14px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-            flex: 1;
-            text-align: center;
-        }
-        @media(min-width: 600px) {
-            .btn { flex: initial; }
-        }
-        .btn-toggle { background: #1a73e8; color: white; }
-        .btn-reset { background: #dc3545; color: white; }
-        .btn-save { background: #34c759; color: white; }
-        .btn-ical { 
-            background: #6f42c1; 
-            color: white; 
-            text-decoration: none; 
-            display: block;
-            width: 100%;
-            padding: 10px; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            text-align: center;
-            box-sizing: border-box;
-        }
-        @media(min-width: 600px) {
-            .btn-ical { width: auto; display: inline-block; }
-        }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f4f6f9; margin: 0; padding: 15px; direction: rtl; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; }
+        h1, h2 { color: #333; text-align: center; }
+        .section-box { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-blue { background: #1a73e8; color: white; }
+        .btn-green { background: #34c759; color: white; }
+        .btn-red { background: #dc3545; color: white; }
+        .btn-purple { background: #6f42c1; color: white; text-decoration: none; display: inline-block; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-size: 14px; }
+        th { background: #f8f9fa; }
+
+        .calendar-wrapper { width: 100%; overflow-x: auto; border: 1px solid #dadce0; border-radius: 8px; margin-top: 15px; }
+        .calendar-grid { display: grid; grid-template-columns: 80px repeat(5, minmax(130px, 1fr)); min-width: 730px; background: white; }
+        .header-cell { background: #f1f3f4; padding: 10px 5px; text-align: center; font-weight: bold; border-bottom: 2px solid #dadce0; border-left: 1px solid #dadce0; font-size: 13px; white-space: pre-line; }
+        .time-cell { background: #fafafa; border-bottom: 1px solid #f1f3f4; border-left: 1px solid #dadce0; text-align: center; font-size: 11px; color: #70757a; height: 50px; display: flex; align-items: center; justify-content: center; }
+        .day-column { position: relative; display: grid; grid-template-rows: repeat(10, 50px); border-left: 1px solid #dadce0; }
         
-        input[type="number"], input[type="date"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
-        }
+        .block-overlay { position: absolute; left: 2px; right: 2px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.15); box-sizing: border-box; padding: 2px; text-align: center; }
+        .block-booked { background-color: #fce8e6; color: #c5221f; border: 1px solid #d93025; }
+        .block-custom { background-color: #fef7e0; color: #b06000; border: 1px solid #f29900; }
 
-        /* מעטפת גלילה לטבלה בטלפונים */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-
-        table {
-            width: 100%;
-            min-width: 600px; /* מבטיח שהעמודות לא יימעכו בטלפון */
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: right;
-            font-size: 14px;
-        }
-        th { background-color: #f8f9fa; }
-        .delete-btn {
-            background: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            box-sizing: border-box;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); box-sizing: border-box; }
+        
+        .slot-checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: right; max-height: 180px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ממשק ניהול - שיעורים שנקבעו</h1>
+    <h1>ממשק ניהול ומעקב מורה</h1>
 
-    <div class="controls">
-        <div class="control-row">
-            <div>
-                סטטוס האתר: 
-                <span id="status-text" class="status-badge">טוען...</span>
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-toggle" onclick="toggleStatus()">פתח / סגור הרשמה</button>
-                <button class="btn btn-reset" onclick="openResetModal()">איפוס שבוע חדש</button>
-            </div>
-        </div>
-
-        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
-
-        <div class="control-row">
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <label style="font-weight: bold;">הפסקה בין שיעורים (בדקות): </label>
-                <input type="number" id="buffer-input" min="0" max="60" value="15" style="width: 65px; text-align: center;">
-                <button class="btn btn-save" onclick="updateBuffer()">שמור הפסקה</button>
-            </div>
-            <div style="width: 100%; max-width: 300px;">
-                <a href="/api/admin/export-ical" class="btn-ical">📅 הורד קובץ יומן (Apple / Google)</a>
-            </div>
+    <!-- בקרת הרשמה ואיפוס -->
+    <div class="section-box">
+        <h3>הגדרות פתיחת הרשמה ואיפוס שבועי</h3>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-blue" onclick="openAccessModal()">🔒 הגדרת פתיחה/סגירה להרשמה</button>
+            <button class="btn btn-red" onclick="openResetModal()">🔄 איפוס שבוע חדש</button>
+            <a href="/api/admin/export-ical" class="btn btn-purple">📅 הורד קובץ יומן (iCal)</a>
         </div>
     </div>
 
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>יום ותאריך</th>
-                    <th>התחלה</th>
-                    <th>סיום</th>
-                    <th>שם התלמיד</th>
-                    <th>טלפון</th>
-                    <th>פעולות</th>
-                </tr>
-            </thead>
-            <tbody id="admin-table-body">
-                <!-- הנתונים יוטענו לכאן -->
-            </tbody>
-        </table>
+    <!-- הוספת שיעור ידנית בשעות חופשיות -->
+    <div class="section-box">
+        <h3>הוספת שיעור ידנית ביומן (שעות חופשיות)</h3>
+        <form id="custom-slot-form" onsubmit="addCustomSlot(event)" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <select id="custom-day" required style="padding: 8px; border-radius: 6px;">
+                <option value="0">יום ראשון</option>
+                <option value="1">יום שני</option>
+                <option value="2">יום שלישי</option>
+                <option value="3">יום רביעי</option>
+                <option value="4">יום חמישי</option>
+            </select>
+            <input type="time" id="custom-start" required style="padding: 8px; border-radius: 6px;">
+            <input type="time" id="custom-end" required style="padding: 8px; border-radius: 6px;">
+            <input type="text" id="custom-name" placeholder="שם השיעור / תלמיד" required style="padding: 8px; border-radius: 6px;">
+            <button type="submit" class="btn btn-green">+ הוסף שיעור ידנית</button>
+        </form>
+    </div>
+
+    <!-- ניהול תלמידים -->
+    <div class="section-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>ניהול תלמידים ומעקב שבועי</h3>
+            <button class="btn btn-green" onclick="openStudentModal()">+ הוסף תלמיד חדש</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>שם התלמיד</th>
+                        <th>טלפון</th>
+                        <th>מכסה דיפולט</th>
+                        <th>מכסה השבוע</th>
+                        <th>שיעורים שנקבעו השבוע</th>
+                        <th>פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="students-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- יומן שבועי מלא למנהל -->
+    <div class="section-box">
+        <h3>לוח שבועי מלא (תצוגת גוגל קלנדר)</h3>
+        <div class="calendar-wrapper">
+            <div class="calendar-grid">
+                <div class="header-cell">שעה</div>
+                <div class="header-cell" id="ah-0">ראשון</div>
+                <div class="header-cell" id="ah-1">שני</div>
+                <div class="header-cell" id="ah-2">שלישי</div>
+                <div class="header-cell" id="ah-3">רביעי</div>
+                <div class="header-cell" id="ah-4">חמישי</div>
+
+                <div id="admin-time-col"></div>
+
+                <div class="day-column" id="acol-0"></div>
+                <div class="day-column" id="acol-1"></div>
+                <div class="day-column" id="acol-2"></div>
+                <div class="day-column" id="acol-3"></div>
+                <div class="day-column" id="acol-4"></div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="reset-modal">
+<!-- פופ-אפ עריכת/הוספת תלמיד -->
+<div class="modal-overlay" id="student-modal">
     <div class="modal-content">
-        <h3>איפוס הלוח לשבוע חדש</h3>
-        <p>מחיקת כל השיעורים הקיימים ובחירת תאריך יום ראשון הקרוב:</p>
-        <div style="margin: 15px 0;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">תאריך יום ראשון:</label>
-            <input type="date" id="sunday-date-input" style="width: 100%; box-sizing: border-box;">
+        <h3 id="student-modal-title">הגדרות תלמיד</h3>
+        <input type="hidden" id="student-id">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>שם מלא:</label>
+            <input type="text" id="s-name" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>מספר טלפון:</label>
+            <input type="tel" id="s-phone" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>מכסת שיעורים שבועית (ברירת מחדל):</label>
+            <input type="number" id="s-quota" value="2" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
+        </div>
+
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>שיעורים קבועים בשבוע (ברירת מחדל):</label>
+            <div id="fixed-lessons-builder" style="border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-top: 4px;">
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <select id="fl-day" style="flex:1;"><option value="0">ראשון</option><option value="1">שני</option><option value="2">שלישי</option><option value="3">רביעי</option><option value="4">חמישי</option></select>
+                    <select id="fl-slot" style="flex:2;"></select>
+                    <button type="button" class="btn btn-blue" onclick="addFixedLessonRow()">+</button>
+                </div>
+                <div id="fixed-lessons-list" style="font-size: 12px;"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-green" style="flex:1;" onclick="saveStudent()">שמור תלמיד</button>
+            <button class="btn btn-red" style="flex:1;" onclick="closeModal('student-modal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- פופ-אפ דריסה שבועית לתלמיד -->
+<div class="modal-overlay" id="override-modal">
+    <div class="modal-content">
+        <h3>הגדרות נקודתיות לשבוע זה בלבד</h3>
+        <input type="hidden" id="ov-student-name">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>שינוי מכסה לשבוע זה:</label>
+            <input type="number" id="ov-quota" style="width: 100%; padding: 8px; box-sizing: border-box; margin-top: 4px;">
+        </div>
+        <div style="text-align: right; margin-bottom: 10px;">
+            <label>חסימת סלוטים ספציפיים לשבוע זה:</label>
+            <div class="slot-checkbox-grid" id="ov-blocked-grid"></div>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button class="btn btn-reset" style="flex:1;" onclick="confirmReset()">אפס יומן עכשיו</button>
-            <button class="btn" style="flex:1; background:#6c757d; color:white;" onclick="closeResetModal()">ביטול</button>
+            <button class="btn btn-green" style="flex:1;" onclick="saveWeeklyOverride()">שמור שינויים שבועיים</button>
+            <button class="btn btn-red" style="flex:1;" onclick="closeModal('override-modal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- פופ-אפ איפוס שבוע -->
+<div class="modal-overlay" id="reset-modal">
+    <div class="modal-content">
+        <h3>איפוס שבוע חדש</h3>
+        <p>בחרי את תאריך יום ראשון הקרוב:</p>
+        <input type="date" id="reset-sunday-date" style="width: 100%; padding: 8px; box-sizing: border-box; margin-bottom: 15px;">
+        <label style="display: block; text-align: right; margin-bottom: 15px;">
+            <input type="checkbox" id="reset-apply-fixed" checked> שבץ אוטומטית שיעורים קבועים של תלמידים
+        </label>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-red" style="flex:1;" onclick="confirmReset()">אפס יומן עכשיו</button>
+            <button class="btn btn-blue" style="flex:1;" onclick="closeModal('reset-modal')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- פופ-אפ בקרת גישה -->
+<div class="modal-overlay" id="access-modal">
+    <div class="modal-content">
+        <h3>בקרת פתיחת ההרשמה</h3>
+        <div style="text-align: right; margin-bottom: 15px;">
+            <label><input type="radio" name="access-mode" value="all" checked> פתוח לכל התלמידים</label><br>
+            <label><input type="radio" name="access-mode" value="none"> סגור לכולם (מצב צפייה)</label><br>
+            <label><input type="radio" name="access-mode" value="specific"> פתוח לתלמידים מסוימים בלבד</label>
+        </div>
+        <div id="specific-students-box" style="display: none; text-align: right; max-height: 150px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-green" style="flex:1;" onclick="saveAccessSettings()">שמור הגדרות</button>
+            <button class="btn btn-red" style="flex:1;" onclick="closeModal('access-modal')">ביטול</button>
         </div>
     </div>
 </div>
 
 <script>
-    let currentIsOpen = true;
+    let globalData = null;
+    let studentsList = [];
+    let tempFixedLessons = [];
 
-    async function loadAdminData() {
-        try {
-            const res = await fetch('/api/slots');
-            const data = await res.json();
-            
-            currentIsOpen = Boolean(data.isOpen);
-            document.getElementById('buffer-input').value = data.bufferTime;
+    const ROW_HEIGHT = 50;
+    const GRID_START_MINS = 8 * 60;
+    const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
 
-            const statusSpan = document.getElementById('status-text');
-            statusSpan.innerText = currentIsOpen ? 'פתוח להרשמה' : 'סגור (מצב צפייה בלבד)';
-            statusSpan.className = `status-badge ${currentIsOpen ? 'status-open' : 'status-closed'}`;
+    function timeToMins(t) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
 
-            const tbody = document.getElementById('admin-table-body');
-            tbody.innerHTML = '';
+    async function loadData() {
+        const res = await fetch('/api/slots');
+        globalData = await res.json();
 
-            if (!data.appointments || data.appointments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">אין שיעורים רשומים השבוע</td></tr>';
-                return;
-            }
+        const stRes = await fetch('/api/admin/students');
+        const stData = await stRes.json();
+        studentsList = stData.students;
 
-            data.appointments.forEach(app => {
-                const dayInfo = data.days.find(d => d.index === app.day_index);
-                const tr = document.createElement('tr');
-                
-                tr.innerHTML = `
-                    <td><strong>${dayInfo ? dayInfo.name + (dayInfo.date ? ' (' + dayInfo.date + ')' : '') : ''}</strong></td>
-                    <td>${app.start_time}</td>
-                    <td>${app.end_time}</td>
-                    <td>${app.booked_by_name}</td>
-                    <td><a href="tel:${app.booked_by_phone}">${app.booked_by_phone}</a></td>
-                    <td><button class="delete-btn" onclick="deleteAppointment(${app.id})">מחק שיעור</button></td>
-                `;
-                tbody.appendChild(tr);
+        renderStudentsTable();
+        renderAdminCalendar();
+    }
+
+    function renderStudentsTable() {
+        const tbody = document.getElementById('students-table-body');
+        tbody.innerHTML = '';
+
+        studentsList.forEach(s => {
+            let lessonsText = s.bookedLessons.map(l => `${globalData.days[l.day_index]?.name || ''} ${l.start_time}`).join(', ') || 'טרם נקבעו';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${s.name}</strong></td>
+                <td>${s.phone || '-'}</td>
+                <td>${s.default_quota}</td>
+                <td>${s.effectiveQuota}</td>
+                <td>${lessonsText}</td>
+                <td>
+                    <button class="btn btn-blue" style="padding: 4px 8px; font-size: 12px;" onclick="openOverrideModal('${s.name}')">הגדרות השבוע</button>
+                    <button class="btn btn-green" style="padding: 4px 8px; font-size: 12px;" onclick="openStudentModal(${s.id})">ערוך דיפולט</button>
+                    <button class="btn btn-red" style="padding: 4px 8px; font-size: 12px;" onclick="deleteStudent(${s.id})">מחק</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderAdminCalendar() {
+        globalData.days.forEach(d => {
+            const hEl = document.getElementById(`ah-${d.index}`);
+            if (hEl) hEl.innerText = `${d.name}\n(${d.date})`;
+        });
+
+        const timeCol = document.getElementById('admin-time-col');
+        timeCol.innerHTML = '';
+        globalData.fixedSlots.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'time-cell';
+            div.innerText = `${s.start}-${s.end}`;
+            timeCol.appendChild(div);
+        });
+
+        for (let day = 0; day < 5; day++) {
+            const col = document.getElementById(`acol-${day}`);
+            col.innerHTML = '';
+
+            globalData.fixedSlots.forEach(() => {
+                const bg = document.createElement('div');
+                bg.style.height = '50px';
+                bg.style.borderBottom = '1px solid #f1f3f4';
+                col.appendChild(bg);
             });
-        } catch (err) {
-            console.error("Error loading admin data:", err);
+
+            globalData.appointments.filter(a => a.day_index === day).forEach(app => {
+                const startM = timeToMins(app.start_time);
+                const endM = timeToMins(app.end_time);
+                const slotIndex = globalData.fixedSlots.findIndex(s => s.start === app.start_time);
+
+                const block = document.createElement('div');
+                block.className = `block-overlay ${app.is_custom ? 'block-custom' : 'block-booked'}`;
+
+                if (slotIndex !== -1) {
+                    block.style.top = `${slotIndex * ROW_HEIGHT}px`;
+                    block.style.height = `${ROW_HEIGHT}px`;
+                } else {
+                    const topPos = ((startM - GRID_START_MINS) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
+                    const height = ((endM - startM) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
+                    block.style.top = `${Math.max(0, topPos)}px`;
+                    block.style.height = `${Math.max(25, height)}px`;
+                }
+
+                block.innerText = `${app.booked_by_name} (${app.start_time}-${app.end_time})`;
+                block.onclick = () => deleteAppointment(app.id);
+                col.appendChild(block);
+            });
         }
     }
 
-    async function toggleStatus() {
-        try {
-            const newStatus = !currentIsOpen;
-            const res = await fetch('/api/admin/toggle-status', {
+    async function deleteAppointment(id) {
+        if (confirm('האם למחוק שיעור זה ממהיומן?')) {
+            await fetch('/api/admin/delete-appointment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isOpen: newStatus })
+                body: JSON.stringify({ id })
             });
-            const text = await res.text();
-            let data;
-            try { data = JSON.parse(text); } catch(e) {}
-
-            if (res.ok) {
-                await loadAdminData();
-            } else {
-                alert('שגיאה בשינוי הסטטוס: ' + (data && data.error ? data.error : text));
-            }
-        } catch (err) {
-            alert('שגיאה בתקשורת: ' + err.message);
+            loadData();
         }
     }
 
-    async function updateBuffer() {
-        try {
-            const bufferTime = document.getElementById('buffer-input').value;
-            const res = await fetch('/api/admin/update-buffer', {
+    async function addCustomSlot(e) {
+        e.preventDefault();
+        const dayIndex = parseInt(document.getElementById('custom-day').value);
+        const startTime = document.getElementById('custom-start').value;
+        const endTime = document.getElementById('custom-end').value;
+        const bookedByName = document.getElementById('custom-name').value;
+
+        const res = await fetch('/api/admin/add-custom-slot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dayIndex, startTime, endTime, bookedByName })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('custom-slot-form').reset();
+            loadData();
+        } else {
+            alert('שגיאה: ' + data.error);
+        }
+    }
+
+    function openStudentModal(id = null) {
+        tempFixedLessons = [];
+        populateSlotSelect();
+        
+        if (id) {
+            const s = studentsList.find(x => x.id === id);
+            document.getElementById('student-id').value = s.id;
+            document.getElementById('s-name').value = s.name;
+            document.getElementById('s-phone').value = s.phone;
+            document.getElementById('s-quota').value = s.default_quota;
+            tempFixedLessons = s.fixed_lessons || [];
+        } else {
+            document.getElementById('student-id').value = '';
+            document.getElementById('s-name').value = '';
+            document.getElementById('s-phone').value = '';
+            document.getElementById('s-quota').value = '2';
+        }
+
+        renderFixedLessonsList();
+        document.getElementById('student-modal').style.display = 'flex';
+    }
+
+    function populateSlotSelect() {
+        const sel = document.getElementById('fl-slot');
+        sel.innerHTML = '';
+        globalData.fixedSlots.forEach(s => {
+            sel.innerHTML += `<option value="${s.start}_${s.end}">${s.start}-${s.end}</option>`;
+        });
+    }
+
+    function addFixedLessonRow() {
+        const dayIndex = parseInt(document.getElementById('fl-day').value);
+        const [startTime, endTime] = document.getElementById('fl-slot').value.split('_');
+        tempFixedLessons.push({ dayIndex, startTime, endTime });
+        renderFixedLessonsList();
+    }
+
+    function renderFixedLessonsList() {
+        const div = document.getElementById('fixed-lessons-list');
+        div.innerHTML = '';
+        const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי'];
+        tempFixedLessons.forEach((fl, idx) => {
+            div.innerHTML += `<div>יום ${dayNames[fl.dayIndex]} בשעה ${fl.startTime}-${fl.endTime} <span style="color:red; cursor:pointer;" onclick="tempFixedLessons.splice(${idx},1); renderFixedLessonsList();">✕</span></div>`;
+        });
+    }
+
+    async function saveStudent() {
+        const id = document.getElementById('student-id').value;
+        const name = document.getElementById('s-name').value.trim();
+        const phone = document.getElementById('s-phone').value.trim();
+        const default_quota = parseInt(document.getElementById('s-quota').value);
+
+        if (!name) return alert('נא להזין שם תלמיד');
+
+        await fetch('/api/admin/students/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id ? parseInt(id) : null, name, phone, default_quota, fixed_lessons: tempFixedLessons })
+        });
+
+        closeModal('student-modal');
+        loadData();
+    }
+
+    async function deleteStudent(id) {
+        if (confirm('למחוק תלמיד זה?')) {
+            await fetch('/api/admin/students/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bufferTime: parseInt(bufferTime) })
+                body: JSON.stringify({ id })
             });
-            const data = await res.json();
-            if (res.ok) {
-                alert(`זמן ההפסקה עודכן ל-${bufferTime} דקות!`);
-                loadAdminData();
-            } else {
-                alert('שגיאה: ' + (data.error || 'נכשל'));
-            }
-        } catch (err) {
-            alert('שגיאה בתקשורת: ' + err.message);
+            loadData();
         }
+    }
+
+    function openOverrideModal(studentName) {
+        const s = studentsList.find(x => x.name === studentName);
+        document.getElementById('ov-student-name').value = studentName;
+        document.getElementById('ov-quota').value = s.effectiveQuota;
+
+        const grid = document.getElementById('ov-blocked-grid');
+        grid.innerHTML = '';
+
+        const dayNames = ['א', 'ב', 'ג', 'ד', 'ה'];
+        for (let d = 0; d < 5; d++) {
+            globalData.fixedSlots.forEach(slot => {
+                const key = `${d}_${slot.start}`;
+                const checked = s.blockedSlots.includes(key) ? 'checked' : '';
+                grid.innerHTML += `<label><input type="checkbox" value="${key}" ${checked}> יום ${dayNames[d]} ${slot.start}</label>`;
+            });
+        }
+
+        document.getElementById('override-modal').style.display = 'flex';
+    }
+
+    async function saveWeeklyOverride() {
+        const student_name = document.getElementById('ov-student-name').value;
+        const quota_override = parseInt(document.getElementById('ov-quota').value);
+        
+        const blocked_slots_override = [];
+        document.querySelectorAll('#ov-blocked-grid input:checked').forEach(cb => blocked_slots_override.push(cb.value));
+
+        await fetch('/api/admin/students/weekly-override', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_name, quota_override, blocked_slots_override })
+        });
+
+        closeModal('override-modal');
+        loadData();
     }
 
     function openResetModal() {
         const today = new Date();
         const sunday = new Date();
         sunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
-        
         const y = sunday.getFullYear();
         const m = String(sunday.getMonth() + 1).padStart(2, '0');
         const d = String(sunday.getDate()).padStart(2, '0');
-        
-        document.getElementById('sunday-date-input').value = `${y}-${m}-${d}`;
+        document.getElementById('reset-sunday-date').value = `${y}-${m}-${d}`;
         document.getElementById('reset-modal').style.display = 'flex';
     }
 
-    function closeResetModal() {
-        document.getElementById('reset-modal').style.display = 'none';
-    }
-
     async function confirmReset() {
-        const sundayDate = document.getElementById('sunday-date-input').value;
-        if (!sundayDate) {
-            alert('חובה לבחור תאריך ליום ראשון');
-            return;
-        }
+        const sundayDate = document.getElementById('reset-sunday-date').value;
+        const applyFixedLessons = document.getElementById('reset-apply-fixed').checked;
 
-        try {
-            const res = await fetch('/api/admin/reset-slots', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sundayDate })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                closeResetModal();
-                alert('הלוח אופס והתאריכים עודכנו לשבוע החדש!');
-                loadAdminData();
-            } else {
-                alert('שגיאה באיפוס: ' + (data.error || 'נכשל'));
-            }
-        } catch (err) {
-            alert('שגיאה בתקשורת: ' + err.message);
-        }
+        await fetch('/api/admin/reset-slots', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sundayDate, applyFixedLessons })
+        });
+
+        closeModal('reset-modal');
+        loadData();
     }
 
-    async function deleteAppointment(id) {
-        if (confirm('למחוק את השיעור הזה?')) {
-            try {
-                const res = await fetch('/api/admin/delete-appointment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    loadAdminData();
-                } else {
-                    alert('שגיאה במחיקה: ' + (data.error || 'נכשל'));
-                }
-            } catch (err) {
-                alert('שגיאה בתקשורת: ' + err.message);
-            }
-        }
+    function openAccessModal() {
+        const box = document.getElementById('specific-students-box');
+        box.innerHTML = '';
+        studentsList.forEach(s => {
+            const checked = globalData.allowedStudentsList.includes(s.name) ? 'checked' : '';
+            box.innerHTML += `<label style="display:block;"><input type="checkbox" value="${s.name}" ${checked}> ${s.name}</label>`;
+        });
+
+        document.querySelectorAll('input[name="access-mode"]').forEach(radio => {
+            radio.onchange = (e) => {
+                box.style.display = e.target.value === 'specific' ? 'block' : 'none';
+            };
+        });
+
+        document.getElementById('access-modal').style.display = 'flex';
     }
 
-    loadAdminData();
+    async function saveAccessSettings() {
+        const openMode = document.querySelector('input[name="access-mode"]:checked').value;
+        const isOpen = openMode !== 'none';
+
+        const allowedStudents = [];
+        if (openMode === 'specific') {
+            document.querySelectorAll('#specific-students-box input:checked').forEach(cb => allowedStudents.push(cb.value));
+        }
+
+        await fetch('/api/admin/toggle-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isOpen, openMode, allowedStudents })
+        });
+
+        closeModal('access-modal');
+        loadData();
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    loadData();
 </script>
-
 </body>
 </html>

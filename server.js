@@ -5,59 +5,77 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const LESSON_DURATION = 60; // משך שיעור (60 דקות)
-
-// התחברות לבסיס הנתונים בענן
-const connectionString = process.env.DATABASE_URL;
+const FIXED_SLOTS = [
+    { start: '08:00', end: '09:00' },
+    { start: '09:15', end: '10:15' },
+    { start: '10:30', end: '11:30' },
+    { start: '11:45', end: '12:45' },
+    { start: '13:00', end: '14:00' },
+    { start: '14:15', end: '15:15' },
+    { start: '16:15', end: '17:15' },
+    { start: '17:30', end: '18:30' },
+    { start: '18:45', end: '19:45' },
+    { start: '20:00', end: '21:00' }
+];
 
 const pool = new Pool({
-    connectionString: connectionString,
-    ssl: connectionString ? { rejectUnauthorized: false } : false
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// יצירת טבלאות והגדרות בסיסיות במידה ואינן קיימות
 async function initDb() {
     try {
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS students (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                phone VARCHAR(50),
+                default_quota INTEGER DEFAULT 2,
+                allowed_slots JSONB DEFAULT '[]',
+                fixed_lessons JSONB DEFAULT '[]'
+            );
+
             CREATE TABLE IF NOT EXISTS appointments (
                 id SERIAL PRIMARY KEY,
-                day_index INTEGER,
-                start_time VARCHAR(10),
-                end_time VARCHAR(10),
-                booked_by_name VARCHAR(100),
-                booked_by_phone VARCHAR(50)
-            )
-        `);
+                day_index INTEGER NOT NULL,
+                start_time VARCHAR(10) NOT NULL,
+                end_time VARCHAR(10) NOT NULL,
+                booked_by_name VARCHAR(100) NOT NULL,
+                booked_by_phone VARCHAR(50),
+                is_custom BOOLEAN DEFAULT FALSE
+            );
 
-        await pool.query(`
+            CREATE TABLE IF NOT EXISTS weekly_student_config (
+                student_name VARCHAR(100) PRIMARY KEY,
+                quota_override INTEGER,
+                allowed_slots_override JSONB,
+                blocked_slots_override JSONB
+            );
+
             CREATE TABLE IF NOT EXISTS settings (
                 key VARCHAR(50) PRIMARY KEY,
-                value VARCHAR(100)
-            )
+                value TEXT
+            );
         `);
 
-        // בדיקה והכנסת ערכי ברירת מחדל בצורה בטוחה
-        const openCheck = await pool.query("SELECT * FROM settings WHERE key = 'is_open'");
-        if (openCheck.rows.length === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('is_open', 'true')");
-        }
+        const defaults = [
+            ["is_open", "true"],
+            ["open_mode", "all"], // all, none, specific
+            ["allowed_students", "[]"],
+            ["sunday_date", ""]
+        ];
 
-        const bufferCheck = await pool.query("SELECT * FROM settings WHERE key = 'buffer_time'");
-        if (bufferCheck.rows.length === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('buffer_time', '15')");
+        for (const [k, v] of defaults) {
+            const check = await pool.query("SELECT * FROM settings WHERE key = $1", [k]);
+            if (check.rows.length === 0) {
+                await pool.query("INSERT INTO settings (key, value) VALUES ($1, $2)", [k, v]);
+            }
         }
-
-        const sundayCheck = await pool.query("SELECT * FROM settings WHERE key = 'sunday_date'");
-        if (sundayCheck.rows.length === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('sunday_date', '')");
-        }
-        
-        console.log('Connected successfully to Cloud PostgreSQL!');
+        console.log('Database initialized successfully!');
     } catch (err) {
         console.error('Error initializing database:', err);
     }
 }
-
 initDb();
 
 function timeToMinutes(timeStr) {
@@ -65,18 +83,11 @@ function timeToMinutes(timeStr) {
     return h * 60 + m;
 }
 
-function minutesToTime(mins) {
-    const h = String(Math.floor(mins / 60)).padStart(2, '0');
-    const m = String(mins % 60).padStart(2, '0');
-    return `${h}:${m}`;
-}
-
 function calculateDatesFromSunday(sundayDateStr) {
     const daysNames = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי'];
     if (!sundayDateStr) {
         return daysNames.map((name, index) => ({ index, name, date: '' }));
     }
-
     const [year, month, day] = sundayDateStr.split('-').map(Number);
     const baseSunday = new Date(year, month - 1, day);
 
@@ -88,152 +99,334 @@ function calculateDatesFromSunday(sundayDateStr) {
     });
 }
 
-// API: קבלת הנתונים
+// Get initial state for student or admin
 app.get('/api/slots', async (req, res) => {
     try {
+        const studentName = req.query.studentName ? req.query.studentName.trim() : null;
+
         const settingsRes = await pool.query("SELECT * FROM settings");
         const settings = {};
         settingsRes.rows.forEach(s => settings[s.key] = s.value);
 
         const isOpen = settings.is_open === 'true';
-        const bufferTime = parseInt(settings.buffer_time || '15');
+        const openMode = settings.open_mode || 'all';
+        const allowedStudentsList = JSON.parse(settings.allowed_students || '[]');
         const sundayDate = settings.sunday_date || '';
 
-        const appsRes = await pool.query("SELECT * FROM appointments ORDER BY id ASC");
+        let isStudentAllowedToBook = isOpen;
+        if (studentName) {
+            if (openMode === 'none') {
+                isStudentAllowedToBook = false;
+            } else if (openMode === 'specific') {
+                isStudentAllowedToBook = allowedStudentsList.includes(studentName);
+            }
+        }
+
+        const appsRes = await pool.query("SELECT * FROM appointments ORDER BY day_index, start_time");
         const days = calculateDatesFromSunday(sundayDate);
 
-        res.json({ 
-            isOpen, 
-            bufferTime, 
+        let studentData = null;
+        if (studentName) {
+            const studentRes = await pool.query("SELECT * FROM students WHERE name = $1", [studentName]);
+            if (studentRes.rows.length > 0) {
+                const s = studentRes.rows[0];
+                const configRes = await pool.query("SELECT * FROM weekly_student_config WHERE student_name = $1", [studentName]);
+                const config = configRes.rows[0] || {};
+
+                const effectiveQuota = config.quota_override !== null && config.quota_override !== undefined ? config.quota_override : s.default_quota;
+                const effectiveAllowedSlots = config.allowed_slots_override || s.allowed_slots || [];
+                const blockedSlots = config.blocked_slots_override || [];
+
+                // Count existing bookings for this student this week
+                const currentBookings = appsRes.rows.filter(a => a.booked_by_name === studentName).length;
+                const remainingQuota = Math.max(0, effectiveQuota - currentBookings);
+
+                studentData = {
+                    name: s.name,
+                    phone: s.phone,
+                    effectiveQuota,
+                    currentBookings,
+                    remainingQuota,
+                    allowedSlots: effectiveAllowedSlots,
+                    blockedSlots
+                };
+            }
+        }
+
+        res.json({
+            isOpen,
+            openMode,
+            allowedStudentsList,
+            isStudentAllowedToBook,
+            fixedSlots: FIXED_SLOTS,
             sundayDate,
-            lessonDuration: LESSON_DURATION,
-            totalSlotTime: LESSON_DURATION + bufferTime,
-            days, 
-            appointments: appsRes.rows 
+            days,
+            appointments: appsRes.rows,
+            studentData
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API: הרשמה לתלמידים
+// Student Booking
 app.post('/api/book', async (req, res) => {
     try {
-        const openSetting = await pool.query("SELECT value FROM settings WHERE key = 'is_open'");
-        if (openSetting.rows.length > 0 && openSetting.rows[0].value === 'false') {
-            return res.status(403).json({ error: 'האתר סגור להרשמה כרגע. ניתן לצפות בלוח בלבד.' });
+        const { studentName, slots } = req.body;
+        if (!studentName || !slots || !Array.isArray(slots) || slots.length === 0) {
+            return res.status(400).json({ error: 'נא להזין שם תלמיד ולבחור לפחות שיעור אחד' });
         }
 
-        const bufferSetting = await pool.query("SELECT value FROM settings WHERE key = 'buffer_time'");
-        const bufferTime = parseInt(bufferSetting.rows.length > 0 ? bufferSetting.rows[0].value : '15');
-        const totalSlotTime = LESSON_DURATION + bufferTime;
+        const trimmedName = studentName.trim();
+        const studentRes = await pool.query("SELECT * FROM students WHERE name = $1", [trimmedName]);
+        if (studentRes.rows.length === 0) {
+            return res.status(404).json({ error: 'תלמיד לא נמצא במערכת' });
+        }
+        const student = studentRes.rows[0];
 
-        const { slots, name, phone } = req.body;
+        // Check if registration is open for this student
+        const settingsRes = await pool.query("SELECT * FROM settings");
+        const settings = {};
+        settingsRes.rows.forEach(s => settings[s.key] = s.value);
 
-        if (!name || !phone || !slots || !Array.isArray(slots) || slots.length === 0) {
-            return res.status(400).json({ error: 'נא למלא את כל השדות ולבחור לפחות שיעור אחד' });
+        const isOpen = settings.is_open === 'true';
+        const openMode = settings.open_mode || 'all';
+        const allowedStudentsList = JSON.parse(settings.allowed_students || '[]');
+
+        let isAllowed = isOpen;
+        if (openMode === 'none') isAllowed = false;
+        if (openMode === 'specific') isAllowed = allowedStudentsList.includes(trimmedName);
+
+        if (!isAllowed) {
+            return res.status(403).json({ error: 'ההרשמה סגורה עבורך כרגע' });
         }
 
-        const cleanPhone = phone.trim().replace(/[-\s]/g, '');
+        const configRes = await pool.query("SELECT * FROM weekly_student_config WHERE student_name = $1", [trimmedName]);
+        const config = configRes.rows[0] || {};
 
-        const userApps = await pool.query("SELECT * FROM appointments WHERE REPLACE(REPLACE(booked_by_phone, '-', ''), ' ', '') = $1", [cleanPhone]);
+        const quota = config.quota_override !== null && config.quota_override !== undefined ? config.quota_override : student.default_quota;
 
-        if (userApps.rows.length + slots.length > 2) {
-            return res.status(400).json({ 
-                error: `כבר רשומים עבורך ${userApps.rows.length} שיעורים. המכסה המרבית היא 2 שיעורים בשבוע.` 
+        const currentBookingsRes = await pool.query("SELECT * FROM appointments WHERE booked_by_name = $1", [trimmedName]);
+        if (currentBookingsRes.rows.length + slots.length > quota) {
+            return res.status(400).json({
+                error: `כבר רשומים עבורך ${currentBookingsRes.rows.length} שיעורים. מכסת השיעורים שלך לשבוע זה היא ${quota}.`
             });
         }
 
-        const allApps = await pool.query("SELECT * FROM appointments");
+        const allAppsRes = await pool.query("SELECT * FROM appointments");
+        const allApps = allAppsRes.rows;
 
         for (let slot of slots) {
             const startMins = timeToMinutes(slot.startTime);
-            const endMins = startMins + totalSlotTime;
+            const endMins = timeToMinutes(slot.endTime);
 
-            const hasConflict = allApps.rows.some(app => {
+            const conflict = allApps.some(app => {
                 if (app.day_index !== slot.dayIndex) return false;
                 const appStart = timeToMinutes(app.start_time);
                 const appEnd = timeToMinutes(app.end_time);
                 return (startMins < appEnd && endMins > appStart);
             });
 
-            if (hasConflict) {
-                return res.status(400).json({ error: `השעה ${slot.startTime} חופפת לשיעור קיים ביומן.` });
+            if (conflict) {
+                return res.status(400).json({ error: `המשבצת ${slot.startTime} ביום ${slot.dayName || ''} חופפת לשיעור קיים ביומן.` });
             }
         }
 
         for (let slot of slots) {
-            const startMins = timeToMinutes(slot.startTime);
-            const endTime = minutesToTime(startMins + totalSlotTime);
             await pool.query(
-                `INSERT INTO appointments (day_index, start_time, end_time, booked_by_name, booked_by_phone) VALUES ($1, $2, $3, $4, $5)`,
-                [slot.dayIndex, slot.startTime, endTime, name, phone]
+                `INSERT INTO appointments (day_index, start_time, end_time, booked_by_name, booked_by_phone, is_custom) VALUES ($1, $2, $3, $4, $5, FALSE)`,
+                [slot.dayIndex, slot.startTime, slot.endTime, trimmedName, student.phone]
             );
         }
 
-        res.json({ success: true, message: `השיבוץ בוצע בהצלחה!` });
+        res.json({ success: true, message: 'השיעור/ים שובצו בהצלחה!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: שינוי זמן ההפסקה
-app.post('/api/admin/update-buffer', async (req, res) => {
+/* --- ADMIN ENDPOINTS --- */
+
+// Get Students List
+app.get('/api/admin/students', async (req, res) => {
     try {
-        const { bufferTime } = req.body;
-        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'buffer_time'", [String(bufferTime)]);
-        if (updateRes.rowCount === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('buffer_time', $1)", [String(bufferTime)]);
-        }
-        res.json({ success: true, bufferTime });
+        const studentsRes = await pool.query("SELECT * FROM students ORDER BY name ASC");
+        const configsRes = await pool.query("SELECT * FROM weekly_student_config");
+        const configsMap = {};
+        configsRes.rows.forEach(c => configsMap[c.student_name] = c);
+
+        const appsRes = await pool.query("SELECT * FROM appointments");
+
+        const list = studentsRes.rows.map(s => {
+            const config = configsMap[s.name] || {};
+            const studentApps = appsRes.rows.filter(a => a.booked_by_name === s.name);
+            return {
+                ...s,
+                effectiveQuota: config.quota_override !== null && config.quota_override !== undefined ? config.quota_override : s.default_quota,
+                effectiveAllowedSlots: config.allowed_slots_override || s.allowed_slots || [],
+                blockedSlots: config.blocked_slots_override || [],
+                bookedLessons: studentApps
+            };
+        });
+
+        res.json({ students: list });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: שינוי מצב פתוח/סגור
+// Add/Update Student Default Settings
+app.post('/api/admin/students/save', async (req, res) => {
+    try {
+        const { id, name, phone, default_quota, allowed_slots, fixed_lessons } = req.body;
+        if (!name) return res.status(400).json({ error: 'שם תלמיד הוא שדה חובה' });
+
+        const trimmedName = name.trim();
+
+        if (id) {
+            await pool.query(
+                `UPDATE students SET name=$1, phone=$2, default_quota=$3, allowed_slots=$4, fixed_lessons=$5 WHERE id=$6`,
+                [trimmedName, phone || '', default_quota || 2, JSON.stringify(allowed_slots || []), JSON.stringify(fixed_lessons || []), id]
+            );
+        } else {
+            await pool.query(
+                `INSERT INTO students (name, phone, default_quota, allowed_slots, fixed_lessons) VALUES ($1, $2, $3, $4, $5)`,
+                [trimmedName, phone || '', default_quota || 2, JSON.stringify(allowed_slots || []), JSON.stringify(fixed_lessons || [])]
+            );
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Student
+app.post('/api/admin/students/delete', async (req, res) => {
+    try {
+        const { id } = req.body;
+        await pool.query("DELETE FROM students WHERE id = $1", [id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Set Weekly Overrides for a Student
+app.post('/api/admin/students/weekly-override', async (req, res) => {
+    try {
+        const { student_name, quota_override, allowed_slots_override, blocked_slots_override } = req.body;
+        
+        await pool.query(`
+            INSERT INTO weekly_student_config (student_name, quota_override, allowed_slots_override, blocked_slots_override)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (student_name) DO UPDATE SET
+                quota_override = EXCLUDED.quota_override,
+                allowed_slots_override = EXCLUDED.allowed_slots_override,
+                blocked_slots_override = EXCLUDED.blocked_slots_override
+        `, [student_name, quota_override, JSON.stringify(allowed_slots_override || []), JSON.stringify(blocked_slots_override || [])]);
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin Custom Slot Booking (Insert Custom Slot manually)
+app.post('/api/admin/add-custom-slot', async (req, res) => {
+    try {
+        const { dayIndex, startTime, endTime, bookedByName, bookedByPhone } = req.body;
+        if (dayIndex === undefined || !startTime || !endTime || !bookedByName) {
+            return res.status(400).json({ error: 'שדות חובה חסרים' });
+        }
+
+        const startMins = timeToMinutes(startTime);
+        const endMins = timeToMinutes(endTime);
+
+        if (startMins >= endMins) {
+            return res.status(400).json({ error: 'שעת הסיום חייבת להיות מאוחרת משעת ההתחלה' });
+        }
+
+        const allAppsRes = await pool.query("SELECT * FROM appointments WHERE day_index = $1", [dayIndex]);
+        const conflict = allAppsRes.rows.some(app => {
+            const appStart = timeToMinutes(app.start_time);
+            const appEnd = timeToMinutes(app.end_time);
+            return (startMins < appEnd && endMins > appStart);
+        });
+
+        if (conflict) {
+            return res.status(400).json({ error: 'השעה שהוזנה חופפת לשיעור קיים ביומן ביום זה' });
+        }
+
+        await pool.query(
+            `INSERT INTO appointments (day_index, start_time, end_time, booked_by_name, booked_by_phone, is_custom) VALUES ($1, $2, $3, $4, $5, TRUE)`,
+            [dayIndex, startTime, endTime, bookedByName, bookedByPhone || '']
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update Registration Access Control
 app.post('/api/admin/toggle-status', async (req, res) => {
     try {
-        const { isOpen } = req.body;
-        const value = isOpen ? 'true' : 'false';
-        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'is_open'", [value]);
-        if (updateRes.rowCount === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('is_open', $1)", [value]);
-        }
-        res.json({ success: true, isOpen });
+        const { isOpen, openMode, allowedStudents } = req.body;
+
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'is_open'", [isOpen ? 'true' : 'false']);
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'open_mode'", [openMode || 'all']);
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'allowed_students'", [JSON.stringify(allowedStudents || [])]);
+
+        res.json({ success: true });
     } catch (err) {
-        console.error("Error in toggle-status:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: איפוס מלא
+// Reset Weekly Schedule
 app.post('/api/admin/reset-slots', async (req, res) => {
     try {
-        const { sundayDate } = req.body;
+        const { sundayDate, applyFixedLessons } = req.body;
+
+        // Clear all current appointments & weekly overrides
         await pool.query("DELETE FROM appointments");
-        const updateRes = await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
-        if (updateRes.rowCount === 0) {
-            await pool.query("INSERT INTO settings (key, value) VALUES ('sunday_date', $1)", [sundayDate || '']);
+        await pool.query("DELETE FROM weekly_student_config");
+
+        await pool.query("UPDATE settings SET value = $1 WHERE key = 'sunday_date'", [sundayDate || '']);
+
+        // Auto-populate fixed lessons if requested
+        if (applyFixedLessons) {
+            const studentsRes = await pool.query("SELECT * FROM students");
+            for (let s of studentsRes.rows) {
+                const fixed = s.fixed_lessons || [];
+                for (let f of fixed) {
+                    await pool.query(
+                        `INSERT INTO appointments (day_index, start_time, end_time, booked_by_name, booked_by_phone, is_custom) VALUES ($1, $2, $3, $4, $5, FALSE)`,
+                        [f.dayIndex, f.startTime, f.endTime, s.name, s.phone]
+                    );
+                }
+            }
         }
-        res.json({ success: true, message: 'היומן אופס בהצלחה והתאריך עודכן!' });
+
+        res.json({ success: true, message: 'השבוע אופס בהצלחה!' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: מחיקת תור בודד
+// Delete Appointment
 app.post('/api/admin/delete-appointment', async (req, res) => {
     try {
         const { id } = req.body;
         await pool.query("DELETE FROM appointments WHERE id = $1", [id]);
-        res.json({ success: true, message: 'השיעור נמחק' });
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// API למנהל: ייצוא קובץ iCal
+// Export iCal
 app.get('/api/admin/export-ical', async (req, res) => {
     try {
         const settingsRes = await pool.query("SELECT * FROM settings");
@@ -241,57 +434,42 @@ app.get('/api/admin/export-ical', async (req, res) => {
         settingsRes.rows.forEach(s => settings[s.key] = s.value);
         const sundayDateStr = settings.sunday_date;
 
-        if (!sundayDateStr) {
-            return res.status(400).send('טרם הוגדר תאריך ליום ראשון.');
-        }
+        if (!sundayDateStr) return res.status(400).send('טרם הוגדר תאריך ליום ראשון.');
 
         const appsRes = await pool.query("SELECT * FROM appointments");
-        const apps = appsRes.rows;
-
         const [year, month, day] = sundayDateStr.split('-').map(Number);
         const baseSunday = new Date(year, month - 1, day);
 
-        let icsContent = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Booking System//Weekly Schedule//HE',
-            'CALSCALE:GREGORIAN',
-            'METHOD:PUBLISH'
+        let ics = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BookingSystem//HE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'
         ];
 
-        apps.forEach(app => {
-            const appDate = new Date(baseSunday);
-            appDate.setDate(baseSunday.getDate() + app.day_index);
+        appsRes.rows.forEach(app => {
+            const d = new Date(baseSunday);
+            d.setDate(baseSunday.getDate() + app.day_index);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const da = String(d.getDate()).padStart(2, '0');
 
-            const y = appDate.getFullYear();
-            const m = String(appDate.getMonth() + 1).padStart(2, '0');
-            const d = String(appDate.getDate()).padStart(2, '0');
+            const [sH, sM] = app.start_time.split(':');
+            const [eH, eM] = app.end_time.split(':');
 
-            const [startH, startMin] = app.start_time.split(':');
-            const [endH, endMin] = app.end_time.split(':');
-
-            const dtStart = `${y}${m}${d}T${startH}${startMin}00`;
-            const dtEnd = `${y}${m}${d}T${endH}${endMin}00`;
-
-            icsContent.push('BEGIN:VEVENT');
-            icsContent.push(`SUMMARY:שיעור - ${app.booked_by_name}`);
-            icsContent.push(`DESCRIPTION:תלמיד: ${app.booked_by_name}\\nטלפון: ${app.booked_by_phone}`);
-            icsContent.push(`DTSTART:${dtStart}`);
-            icsContent.push(`DTEND:${dtEnd}`);
-            icsContent.push('END:VEVENT');
+            ics.push('BEGIN:VEVENT');
+            ics.push(`SUMMARY:שיעור - ${app.booked_by_name}`);
+            ics.push(`DESCRIPTION:תלמיד: ${app.booked_by_name}\\nטלפון: ${app.booked_by_phone}`);
+            ics.push(`DTSTART:${y}${m}${da}T${sH}${sM}00`);
+            ics.push(`DTEND:${y}${m}${da}T${eH}${eM}00`);
+            ics.push('END:VEVENT');
         });
 
-        icsContent.push('END:VCALENDAR');
-
+        ics.push('END:VCALENDAR');
         res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="weekly_schedule.ics"');
-        res.send(icsContent.join('\r\n'));
+        res.send(ics.join('\r\n'));
     } catch (err) {
-        res.status(500).send('שגיאה ביצירת הקובץ');
+        res.status(500).send('Error generating iCal');
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
