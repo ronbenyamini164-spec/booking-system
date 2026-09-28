@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -12,7 +13,15 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^5.2.1",
-    "pg": "^8.22.0",
+    "pg": "^8.23.0",
     "sqlite3": "^6.0.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronbenyamini164-spec/booking-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ronbenyamini164-spec/booking-system/issues"
+  },
+  "homepage": "https://github.com/ronbenyamini164-spec/booking-system#readme"
 }
