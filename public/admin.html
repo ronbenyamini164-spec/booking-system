@@ -281,15 +281,14 @@
  ];
 
  // ============ 🔐 SECURITY / AUTH LAYER ============
- function getToken() { return localStorage.getItem('admin_token'); }
- function setToken(t) { localStorage.setItem('admin_token', t); }
- function clearToken() { localStorage.removeItem('admin_token'); }
+ // הטוקן נשמר כ-HttpOnly cookie בשרת — JavaScript לא רואה אותו ולא מנהל אותו.
+ // הדפדפן מצרף אותו אוטומטית לכל בקשה (credentials: 'same-origin').
  function showLogin() { document.getElementById('login-modal').style.display = 'flex'; }
 
  async function apiFetch(url, opts = {}) {
- opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + (getToken() || '') });
+ opts.credentials = 'same-origin'; // שולח את קוקי הטוקן אוטומטית
  const res = await fetch(url, opts);
- if (res.status === 401) { clearToken(); showLogin(); throw new Error('Unauthorized'); }
+ if (res.status === 401) { showLogin(); throw new Error('Unauthorized'); }
  return res;
  }
 
@@ -300,12 +299,12 @@
  try {
  const res = await fetch('/api/admin/login', {
  method: 'POST',
+ credentials: 'same-origin',
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify({ password: pass })
  });
  const data = await res.json();
- if (res.ok && data.token) {
- setToken(data.token);
+ if (res.ok && data.success) {
  document.getElementById('admin-pass-input').value = '';
  document.getElementById('login-modal').style.display = 'none';
  loadDashboardData();
@@ -315,19 +314,20 @@
  } catch (e) { errEl.innerText = 'Connection error. Please try again.'; }
  }
 
- function logout() { clearToken(); showLogin(); }
+ async function logout() {
+ try { await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+ showLogin();
+ }
 
  window.onload = async function() {
  populateSlotSelects();
- const token = getToken();
- if (!token) { showLogin(); return; }
  try {
- const res = await fetch('/api/admin/verify', { headers: { 'Authorization': 'Bearer ' + token } });
+ const res = await fetch('/api/admin/verify', { credentials: 'same-origin' });
  if (res.ok) {
  document.getElementById('login-modal').style.display = 'none';
  loadDashboardData();
  } else {
- clearToken(); showLogin();
+ showLogin();
  }
  } catch (e) { showLogin(); }
  };

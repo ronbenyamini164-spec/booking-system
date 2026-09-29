@@ -92,10 +92,17 @@ function verifyToken(token) {
   } catch (e) { return false; }
 }
 
+// עזר קטן לקריאת קוקי בודד מתוך כותרת ה-Cookie (בלי חבילה חיצונית)
+function getCookie(req, name) {
+  const raw = req.headers.cookie || '';
+  const found = raw.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
+  return found ? decodeURIComponent(found.slice(name.length + 1)) : null;
+}
+
 // (6) שוער (Middleware) שחוסם כל נתיב /api/admin חוץ מהתחברות
 function requireAuth(req, res, next) {
-  const header = req.headers['authorization'] || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  // הטוקן נקרא מ-HttpOnly cookie (JavaScript בדפדפן לא יכול לגעת בו)
+  const token = getCookie(req, 'admin_token');
   if (verifyToken(token)) return next();
   return res.status(401).json({ error: 'Unauthorized — please log in again' });
 }
@@ -240,7 +247,15 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
   const ok = provided.length === actual.length && crypto.timingSafeEqual(provided, actual);
   if (ok) {
     await logAction(req, 'LOGIN_SUCCESS', null);
-    return res.json({ success: true, token: createToken() });
+    // secure=true רק ב-HTTPS (פרודקשן). ב-localhost נשאר false כדי שההתחברות המקומית תעבוד.
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    res.cookie('admin_token', createToken(), {
+      httpOnly: true,        // לא נגיש ל-JavaScript — מגן מפני גניבת טוקן (XSS)
+      secure: isSecure,      // נשלח רק ב-HTTPS בפרודקשן
+      sameSite: 'strict',    // לא נשלח מאתרים אחרים
+      maxAge: TOKEN_TTL_MS   // תוקף זהה לטוקן (8 שעות)
+    });
+    return res.json({ success: true });
   }
   await logAction(req, 'LOGIN_FAILED', null);
   return res.status(401).json({ error: 'סיסמה שגויה' });
@@ -254,6 +269,13 @@ app.use('/api/admin', (req, res, next) => {
 
 // בדיקת תקינות טוקן (הממשק קורא לזה כדי לדעת אם עדיין מחוברים)
 app.get('/api/admin/verify', (req, res) => res.json({ success: true }));
+
+// התנתקות — מוחק את קוקי הטוקן בשרת
+app.post('/api/admin/logout', async (req, res) => {
+  await logAction(req, 'LOGOUT', null);
+  res.clearCookie('admin_token');
+  return res.json({ success: true });
+});
 
 // ==========================================
 // 📅 STUDENT BOOKING (PUBLIC) — פתוח לתלמידים, ללא צורך בטוקן
