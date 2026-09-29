@@ -1,800 +1,632 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin Dashboard & Business Management | Trading Journal Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #07090e;
-            --card-bg: #111625;
-            --card-border: #1e293b;
-            --accent-cyan: #06b6d4;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-red: #f43f5e;
-            --accent-orange: #f97316;
-            --text-main: #f8fafc;
-            --text-muted: #64748b;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 100%; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-dark); color: var(--text-main); }
-        body { padding: 12px; }
-
-        .navbar { display: flex; justify-content: space-between; align-items: center; background: rgba(17, 22, 37, 0.85); backdrop-filter: blur(16px); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--card-border); flex-wrap: wrap; gap: 10px; width: 100%; }
-        .navbar h1 { margin: 0; font-size: 18px; font-weight: 800; background: linear-gradient(135deg, #06b6d4, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-tabs { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
-        .nav-tabs button { color: var(--text-muted); background: transparent; border: none; font-weight: 600; font-size: 12px; padding: 8px 12px; border-radius: 10px; transition: all 0.2s; cursor: pointer; flex: 1; text-align: center; white-space: nowrap; }
-        .nav-tabs button.active { color: var(--text-main); background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.3); }
-
-        .container { max-width: 1100px; margin: 0 auto; width: 100%; }
-        .card { background: var(--card-bg); padding: 18px; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 15px 35px rgba(0,0,0,0.4); margin-bottom: 20px; width: 100%; }
-        h2 { margin-top: 0; font-size: 17px; font-weight: 800; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; width: 100%; margin-bottom: 15px; }
-        .form-group { display: flex; flex-direction: column; width: 100%; }
-        label { font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
-        input, select, textarea { background: #07090e; border: 1px solid var(--card-border); color: var(--text-main); padding: 10px 12px; border-radius: 10px; font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
-
-        .badge { padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 11px; color: #07090e; display: inline-block; white-space: nowrap; }
-        .badge-paid { background: var(--accent-green); }
-        .badge-pending { background: var(--accent-orange); }
-
-        .btn-action { border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; color: white; white-space: nowrap; }
-        .btn-blue { background: var(--accent-blue); }
-        .btn-green { background: var(--accent-green); color: #07090e; }
-        .btn-red { background: var(--accent-red); }
-        .btn-del { background: #334155; }
-
-        .calendar-wrapper { display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 8px; margin-top: 15px; width: 100%; overflow-x: auto; }
-        .calendar-time-col { display: flex; flex-direction: column; gap: 8px; margin-top: 31px; }
-        .time-label { height: 48px; background: #07090e; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--accent-cyan); }
-
-        .calendar-day-col { display: flex; flex-direction: column; gap: 8px; }
-        .calendar-day-header { height: 23px; font-weight: 800; font-size: 11px; color: var(--accent-cyan); text-align: center; border-bottom: 1px solid var(--card-border); }
-        .slot-item { height: 48px; background: #111625; border: 1px solid var(--card-border); border-radius: 8px; padding: 6px; font-size: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .slot-booked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.25); color: var(--accent-green); font-weight: bold; }
-        .slot-blocked { border-color: var(--accent-red); background: rgba(244, 63, 94, 0.35); color: var(--accent-red); font-weight: bold; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 15px; width: 100%; }
-        .stat-box { background: #07090e; padding: 16px; border-radius: 14px; text-align: center; border: 1px solid var(--card-border); }
-        .stat-box h3 { margin: 0 0 6px 0; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
-        .stat-box p { margin: 0; font-size: 18px; font-weight: 800; color: var(--accent-cyan); }
-
-        .table-container { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; min-width: 600px; }
-        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
-        th { background: #07090e; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 800; }
-
-        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); padding: 15px; }
-        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 16px; width: 100%; max-width: 450px; border: 1px solid var(--card-border); text-align: center; max-height: 90vh; overflow-y: auto; }
-    </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Admin Dashboard & Business Management</title>
+ <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+ <style>
+ :root {
+ --bg-dark: #07090e; --card-bg: #111625; --card-border: #1e293b;
+ --accent-cyan: #06b6d4; --accent-blue: #3b82f6; --accent-green: #10b981;
+ --accent-red: #f43f5e; --accent-orange: #f97316; --text-main: #f8fafc; --text-muted: #64748b;
+ }
+ * { box-sizing: border-box; margin: 0; padding: 0; }
+ html, body { width: 100%; overflow-x: hidden; font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-dark); color: var(--text-main); }
+ body { padding: 12px; }
+ .navbar { display: flex; justify-content: space-between; align-items: center; background: rgba(17, 22, 37, 0.85); backdrop-filter: blur(16px); padding: 14px 16px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--card-border); flex-wrap: wrap; gap: 10px; width: 100%; }
+ .navbar h1 { margin: 0; font-size: 18px; font-weight: 800; background: linear-gradient(135deg, #06b6d4, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+ .nav-tabs { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
+ .nav-tabs button { color: var(--text-muted); background: transparent; border: none; font-weight: 600; font-size: 12px; padding: 8px 12px; border-radius: 10px; transition: all 0.2s; cursor: pointer; flex: 1; text-align: center; white-space: nowrap; }
+ .nav-tabs button.active { color: var(--text-main); background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.3); }
+ .container { max-width: 1100px; margin: 0 auto; width: 100%; }
+ .card { background: var(--card-bg); padding: 18px; border-radius: 20px; border: 1px solid var(--card-border); box-shadow: 0 15px 35px rgba(0,0,0,0.4); margin-bottom: 20px; width: 100%; }
+ h2 { margin-top: 0; font-size: 17px; font-weight: 800; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+ .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; width: 100%; margin-bottom: 15px; }
+ .form-group { display: flex; flex-direction: column; width: 100%; }
+ label { font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+ input, select, textarea { background: #07090e; border: 1px solid var(--card-border); color: var(--text-main); padding: 10px 12px; border-radius: 10px; font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
+ .badge { padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 11px; color: #07090e; display: inline-block; white-space: nowrap; }
+ .badge-paid { background: var(--accent-green); }
+ .badge-pending { background: var(--accent-orange); }
+ .btn-action { border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; color: white; white-space: nowrap; }
+ .btn-blue { background: var(--accent-blue); }
+ .btn-green { background: var(--accent-green); color: #07090e; }
+ .btn-red { background: var(--accent-red); }
+ .btn-del { background: #334155; }
+ .calendar-wrapper { display: grid; grid-template-columns: 110px repeat(5, 1fr); gap: 8px; margin-top: 15px; width: 100%; overflow-x: auto; }
+ .calendar-time-col { display: flex; flex-direction: column; gap: 8px; margin-top: 31px; }
+ .time-label { height: 48px; background: #07090e; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--accent-cyan); }
+ .calendar-day-col { display: flex; flex-direction: column; gap: 8px; }
+ .calendar-day-header { height: 23px; font-weight: 800; font-size: 11px; color: var(--accent-cyan); text-align: center; border-bottom: 1px solid var(--card-border); }
+ .slot-item { height: 48px; background: #111625; border: 1px solid var(--card-border); border-radius: 8px; padding: 6px; font-size: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+ .slot-booked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.25); color: var(--accent-green); font-weight: bold; }
+ .slot-blocked { border-color: var(--accent-red); background: rgba(244, 63, 94, 0.35); color: var(--accent-red); font-weight: bold; }
+ .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 15px; width: 100%; }
+ .stat-box { background: #07090e; padding: 16px; border-radius: 14px; text-align: center; border: 1px solid var(--card-border); }
+ .stat-box h3 { margin: 0 0 6px 0; font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+ .stat-box p { margin: 0; font-size: 18px; font-weight: 800; color: var(--accent-cyan); }
+ .table-container { width: 100%; overflow-x: auto; }
+ table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; min-width: 600px; }
+ th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
+ th { background: #07090e; color: var(--text-muted); font-size: 11px; text-transform: uppercase; font-weight: 800; }
+ .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(8px); padding: 15px; }
+ .modal-content { background: var(--card-bg); padding: 25px; border-radius: 16px; width: 100%; max-width: 450px; border: 1px solid var(--card-border); text-align: center; max-height: 90vh; overflow-y: auto; }
+ </style>
 </head>
 <body>
 
+<!-- 🔒 LOGIN GATE — נטען ראשון וחוסם את כל הדף עד להתחברות -->
+<div class="modal-overlay" id="login-modal" style="display:none; z-index:9999;">
+ <div class="modal-content">
+ <h3 style="margin-bottom:15px; color:var(--accent-cyan);">🔒 Admin Secure Login</h3>
+ <input type="password" id="admin-pass-input" placeholder="Enter Admin Password" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')handleLogin()">
+ <div id="login-error" style="color:var(--accent-red); font-size:12px; margin-bottom:12px; min-height:14px;"></div>
+ <button class="btn-action btn-blue" style="width:100%; padding:12px;" onclick="handleLogin()">Login</button>
+ </div>
+</div>
+
 <div class="navbar">
-    <h1>📈 Admin Dashboard</h1>
-    <div class="nav-tabs">
-        <button class="active" onclick="switchTab('calendar-tab')">📅 Calendar & Controls</button>
-        <button onclick="switchTab('students-tab')">🎓 Active Students</button>
-        <button onclick="switchTab('invoices-tab')">💵 Invoices & Revenue</button>
-        <button onclick="switchTab('expenses-tab')">💸 Business Expenses</button>
-        <button onclick="switchTab('stats-tab')">📊 Stats & Results</button>
-    </div>
+ <h1>📈 Admin Dashboard</h1>
+ <div class="nav-tabs">
+ <button class="active" onclick="switchTab('calendar-tab')">📅 Calendar & Controls</button>
+ <button onclick="switchTab('students-tab')">🎓 Active Students</button>
+ <button onclick="switchTab('invoices-tab')">💵 Invoices & Revenue</button>
+ <button onclick="switchTab('expenses-tab')">💸 Business Expenses</button>
+ <button onclick="switchTab('stats-tab')">📊 Stats & Results</button>
+ <button onclick="logout()" style="flex:0; background:#334155; color:#fff;">🚪 Logout</button>
+ </div>
 </div>
 
 <div class="container">
 
-    <!-- TAB 1: CALENDAR & CONTROLS -->
-    <div id="calendar-tab" class="tab-content card">
-        <h2>
-            <span>📅 Weekly Calendar Schedule</span>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-action btn-blue" onclick="openHistoryModal()">📜 Calendar History</button>
-                <button class="btn-action btn-red" onclick="openResetWeekModal()">🔄 Reset Week & Dates</button>
-            </div>
-        </h2>
+ <!-- TAB 1: CALENDAR & CONTROLS -->
+ <div id="calendar-tab" class="tab-content card">
+ <h2>
+ <span>📅 Weekly Calendar Schedule</span>
+ <div style="display:flex; gap:8px;">
+ <button class="btn-action btn-blue" onclick="openHistoryModal()">📜 Calendar History</button>
+ <button class="btn-action btn-red" onclick="openResetWeekModal()">🔄 Reset Week & Dates</button>
+ </div>
+ </h2>
+ <h3 style="font-size:13px; margin-bottom:10px; color:var(--accent-red);">🚫 Block Time Slot Dropdown</h3>
+ <div class="form-grid">
+ <div class="form-group">
+ <label>Select Day</label>
+ <select id="block-day-index">
+ <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option>
+ </select>
+ </div>
+ <div class="form-group"><label>Select Fixed Slot</label><select id="block-slot-select"></select></div>
+ <div class="form-group" style="justify-content:flex-end;"><button class="btn-action btn-red" style="height:40px;" onclick="saveSlotBlock()">🚫 Save Block</button></div>
+ </div>
+ <div class="calendar-wrapper">
+ <div class="calendar-time-col" id="time-sidebar"></div>
+ <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-0">Sunday</div><div id="day-col-0"></div></div>
+ <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-1">Monday</div><div id="day-col-1"></div></div>
+ <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-2">Tuesday</div><div id="day-col-2"></div></div>
+ <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-3">Wednesday</div><div id="day-col-3"></div></div>
+ <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-4">Thursday</div><div id="day-col-4"></div></div>
+ </div>
+ </div>
 
-        <!-- Slot Blocking Dropdowns -->
-        <h3 style="font-size:13px; margin-bottom:10px; color:var(--accent-red);">🚫 Block Time Slot Dropdown</h3>
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Select Day</label>
-                <select id="block-day-index">
-                    <option value="0">Sunday</option>
-                    <option value="1">Monday</option>
-                    <option value="2">Tuesday</option>
-                    <option value="3">Wednesday</option>
-                    <option value="4">Thursday</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Select Fixed Slot</label>
-                <select id="block-slot-select"></select>
-            </div>
-            <div class="form-group" style="justify-content:flex-end;">
-                <button class="btn-action btn-red" style="height:40px;" onclick="saveSlotBlock()">🚫 Save Block</button>
-            </div>
-        </div>
+ <!-- TAB 2: ACTIVE STUDENTS -->
+ <div id="students-tab" class="tab-content card" style="display:none;">
+ <h2><span>🎓 Active Students</span><button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button></h2>
+ <div class="table-container">
+ <table>
+ <thead><tr><th>Name</th><th>Course</th><th>Weekly Quota</th><th>Amount / Owed</th><th>Actions</th></tr></thead>
+ <tbody id="students-table-body"></tbody>
+ </table>
+ </div>
+ <div style="margin-top:40px; border-top:1px solid var(--card-border); padding-top:20px;">
+ <button class="btn-action btn-del" style="width:100%; padding:12px;" onclick="togglePastStudentsArchive()">📁 Toggle Past Students Archive</button>
+ <div id="past-students-container" style="display:none; margin-top:15px;" class="table-container">
+ <table>
+ <thead><tr><th>Name</th><th>Course</th><th>Total Amount</th><th>Actions</th></tr></thead>
+ <tbody id="past-students-table-body"></tbody>
+ </table>
+ </div>
+ </div>
+ </div>
 
-        <!-- Vertical Calendar Grid -->
-        <div class="calendar-wrapper">
-            <div class="calendar-time-col" id="time-sidebar"></div>
-            <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-0">Sunday</div><div id="day-col-0"></div></div>
-            <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-1">Monday</div><div id="day-col-1"></div></div>
-            <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-2">Tuesday</div><div id="day-col-2"></div></div>
-            <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-3">Wednesday</div><div id="day-col-3"></div></div>
-            <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-4">Thursday</div><div id="day-col-4"></div></div>
-        </div>
-    </div>
+ <!-- TAB 3: INVOICES -->
+ <div id="invoices-tab" class="tab-content card" style="display:none;">
+ <h2><span>💵 Invoices & Revenue</span><button class="btn-action btn-green" onclick="openInvoiceModal()">➕ New Invoice</button></h2>
+ <div class="table-container">
+ <table>
+ <thead><tr><th>Invoice #</th><th>Student</th><th>Date</th><th>Method</th><th>Amount</th></tr></thead>
+ <tbody id="invoices-table-body"></tbody>
+ </table>
+ </div>
+ </div>
 
-    <!-- TAB 2: ACTIVE STUDENTS -->
-    <div id="students-tab" class="tab-content card" style="display:none;">
-        <h2>
-            <span>🎓 Active Students</span>
-            <button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button>
-        </h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr><th>Name</th><th>Course</th><th>Weekly Quota</th><th>Amount / Owed</th><th>Actions</th></tr>
-                </thead>
-                <tbody id="students-table-body"></tbody>
-            </table>
-        </div>
+ <!-- TAB 4: EXPENSES -->
+ <div id="expenses-tab" class="tab-content card" style="display:none;">
+ <h2><span>💸 Business Expenses</span><button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button></h2>
+ <div class="table-container">
+ <table>
+ <thead><tr><th>Date</th><th>Vendor / Description</th><th>Category</th><th>Amount (₪)</th></tr></thead>
+ <tbody id="expenses-table-body"></tbody>
+ </table>
+ </div>
+ </div>
 
-        <!-- Past Students Archive Section at Bottom -->
-        <div style="margin-top:40px; border-top:1px solid var(--card-border); padding-top:20px;">
-            <button class="btn-action btn-del" style="width:100%; padding:12px;" onclick="togglePastStudentsArchive()">📁 Toggle Past Students Archive</button>
-            <div id="past-students-container" style="display:none; margin-top:15px;" class="table-container">
-                <table>
-                    <thead>
-                        <tr><th>Name</th><th>Course</th><th>Total Amount</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody id="past-students-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 3: INVOICES -->
-    <div id="invoices-tab" class="tab-content card" style="display:none;">
-        <h2>
-            <span>💵 Invoices & Revenue</span>
-            <button class="btn-action btn-green" onclick="openInvoiceModal()">➕ New Invoice</button>
-        </h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr><th>Invoice #</th><th>Student</th><th>Date</th><th>Method</th><th>Amount</th></tr>
-                </thead>
-                <tbody id="invoices-table-body"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- TAB 4: EXPENSES (BUSINESS EXPENSES) -->
-    <div id="expenses-tab" class="tab-content card" style="display:none;">
-        <h2>
-            <span>💸 Business Expenses</span>
-            <button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button>
-        </h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr><th>Date</th><th>Vendor / Description</th><th>Category</th><th>Amount (₪)</th></tr>
-                </thead>
-                <tbody id="expenses-table-body"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- TAB 5: STATS & RESULTS -->
-    <div id="stats-tab" class="tab-content card" style="display:none;">
-        <h2>📊 Financial Overview & Business Results</h2>
-        <div class="stats-grid">
-            <div class="stat-box">
-                <h3>Total Income</h3>
-                <p id="st-total-income" style="color:var(--accent-green);">₪0.00</p>
-            </div>
-            <div class="stat-box">
-                <h3>Total Expenses</h3>
-                <p id="st-total-expenses" style="color:var(--accent-red);">₪0.00</p>
-            </div>
-            <div class="stat-box">
-                <h3>Net Profit</h3>
-                <p id="st-net-profit" style="color:var(--accent-cyan);">₪0.00</p>
-            </div>
-            <div class="stat-box">
-                <h3>Total Students Owed</h3>
-                <p id="st-total-owed" style="color:var(--accent-orange);">₪0.00</p>
-            </div>
-        </div>
-    </div>
+ <!-- TAB 5: STATS -->
+ <div id="stats-tab" class="tab-content card" style="display:none;">
+ <h2>📊 Financial Overview & Business Results</h2>
+ <div class="stats-grid">
+ <div class="stat-box"><h3>Total Income</h3><p id="st-total-income" style="color:var(--accent-green);">₪0.00</p></div>
+ <div class="stat-box"><h3>Total Expenses</h3><p id="st-total-expenses" style="color:var(--accent-red);">₪0.00</p></div>
+ <div class="stat-box"><h3>Net Profit</h3><p id="st-net-profit" style="color:var(--accent-cyan);">₪0.00</p></div>
+ <div class="stat-box"><h3>Total Students Owed</h3><p id="st-total-owed" style="color:var(--accent-orange);">₪0.00</p></div>
+ </div>
+ </div>
 
 </div>
 
 <!-- Reset Week Modal -->
 <div class="modal-overlay" id="reset-week-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">Reset Week & Set Sunday Date</h3>
-        <div class="form-group" style="margin-bottom:15px;">
-            <label>Select Sunday Date *</label>
-            <input type="date" id="reset-sunday-date">
-        </div>
-        <button class="btn-action btn-red" style="width:100%; padding:12px; margin-bottom:8px;" onclick="confirmResetWeek()">Confirm Reset Week</button>
-        <button class="btn-action btn-del" style="width:100%; padding:10px;" onclick="closeModal('reset-week-modal')">Cancel</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">Reset Week & Set Sunday Date</h3>
+ <div class="form-group" style="margin-bottom:15px;"><label>Select Sunday Date *</label><input type="date" id="reset-sunday-date"></div>
+ <button class="btn-action btn-red" style="width:100%; padding:12px; margin-bottom:8px;" onclick="confirmResetWeek()">Confirm Reset Week</button>
+ <button class="btn-action btn-del" style="width:100%; padding:10px;" onclick="closeModal('reset-week-modal')">Cancel</button>
+ </div>
 </div>
 
 <!-- History Modal -->
 <div class="modal-overlay" id="history-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">📜 Full Calendar History</h3>
-        <div class="table-container" style="max-height:300px; overflow-y:auto;">
-            <table>
-                <thead><tr><th>Date</th><th>Student</th><th>Time</th></tr></thead>
-                <tbody id="history-table-body"></tbody>
-            </table>
-        </div>
-        <button class="btn-action btn-del" style="width:100%; margin-top:15px; padding:10px;" onclick="closeModal('history-modal')">Close</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">📜 Full Calendar History</h3>
+ <div class="table-container" style="max-height:300px; overflow-y:auto;">
+ <table><thead><tr><th>Date</th><th>Student</th><th>Time</th></tr></thead><tbody id="history-table-body"></tbody></table>
+ </div>
+ <button class="btn-action btn-del" style="width:100%; margin-top:15px; padding:10px;" onclick="closeModal('history-modal')">Close</button>
+ </div>
 </div>
 
 <!-- Direct Book Modal -->
 <div class="modal-overlay" id="direct-book-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">Book Lesson for Student</h3>
-        <p id="direct-book-info" style="font-size:12px; color:var(--accent-cyan); margin-bottom:10px;"></p>
-        <div class="form-group" style="margin-bottom:15px;">
-            <label>Select Student *</label>
-            <select id="direct-book-student"></select>
-        </div>
-        <button class="btn-action btn-green" style="width:100%; padding:12px; margin-bottom:8px;" onclick="confirmDirectBooking()">Book Lesson Now</button>
-        <button class="btn-action btn-del" style="width:100%; padding:10px;" onclick="closeModal('direct-book-modal')">Cancel</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">Book Lesson for Student</h3>
+ <p id="direct-book-info" style="font-size:12px; color:var(--accent-cyan); margin-bottom:10px;"></p>
+ <div class="form-group" style="margin-bottom:15px;"><label>Select Student *</label><select id="direct-book-student"></select></div>
+ <button class="btn-action btn-green" style="width:100%; padding:12px; margin-bottom:8px;" onclick="confirmDirectBooking()">Book Lesson Now</button>
+ <button class="btn-action btn-del" style="width:100%; padding:10px;" onclick="closeModal('direct-book-modal')">Cancel</button>
+ </div>
 </div>
 
 <!-- Student Modal -->
 <div class="modal-overlay" id="student-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">Student Profile</h3>
-        <div class="form-group" style="margin-bottom:10px;"><label>Full Name *</label><input type="text" id="m_student_name"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Phone</label><input type="text" id="m_student_phone"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Email</label><input type="email" id="m_student_email"></div>
-        <div class="form-group" style="margin-bottom:10px;">
-            <label>Course Type</label>
-            <div style="display:flex; gap:6px;">
-                <select id="m_student_course" style="flex:1;"></select>
-                <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('course_type')">➕</button>
-                <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('course_type')">🗑️</button>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Weekly Quota (Lessons / Week)</label><input type="number" id="m_student_quota" value="2"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Total Course Amount (₪)</label><input type="number" id="m_student_amount" value="4900"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Total Lessons in Process</label><input type="number" id="m_student_total_lessons" value="16"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Process Duration (Months)</label><input type="number" id="m_student_duration" value="4"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Process Start Date</label><input type="date" id="m_student_start_date"></div>
-        <div class="form-group" style="margin-bottom:15px;">
-            <label>Move to Past Students Archive?</label>
-            <select id="m_student_is_past">
-                <option value="false">No (Active Student)</option>
-                <option value="true">Yes (Past Archive)</option>
-            </select>
-        </div>
-        
-        <button class="btn-action btn-blue" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveStudent()">Save Student Profile</button>
-        <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('student-modal')">Cancel</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">Student Profile</h3>
+ <div class="form-group" style="margin-bottom:10px;"><label>Full Name *</label><input type="text" id="m_student_name"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Phone</label><input type="text" id="m_student_phone"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Email</label><input type="email" id="m_student_email"></div>
+ <div class="form-group" style="margin-bottom:10px;">
+ <label>Course Type</label>
+ <div style="display:flex; gap:6px;">
+ <select id="m_student_course" style="flex:1;"></select>
+ <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('course_type')">➕</button>
+ <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('course_type')">🗑️</button>
+ </div>
+ </div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Weekly Quota (Lessons / Week)</label><input type="number" id="m_student_quota" value="2"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Total Course Amount (₪)</label><input type="number" id="m_student_amount" value="4900"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Total Lessons in Process</label><input type="number" id="m_student_total_lessons" value="16"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Process Duration (Months)</label><input type="number" id="m_student_duration" value="4"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Process Start Date</label><input type="date" id="m_student_start_date"></div>
+ <div class="form-group" style="margin-bottom:15px;">
+ <label>Move to Past Students Archive?</label>
+ <select id="m_student_is_past"><option value="false">No (Active Student)</option><option value="true">Yes (Past Archive)</option></select>
+ </div>
+ <button class="btn-action btn-blue" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveStudent()">Save Student Profile</button>
+ <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('student-modal')">Cancel</button>
+ </div>
 </div>
 
 <!-- Invoice Modal -->
 <div class="modal-overlay" id="invoice-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">New Invoice / Income</h3>
-        <div class="form-group" style="margin-bottom:10px;"><label>Invoice # *</label><input type="text" id="i_number" placeholder="98/300001"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Student Name *</label><select id="i_student_select"></select></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Invoice Date *</label><input type="date" id="i_date"></div>
-        <div class="form-group" style="margin-bottom:10px;">
-            <label>Payment Method</label>
-            <div style="display:flex; gap:6px;">
-                <select id="i_method" style="flex:1;"></select>
-                <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('payment_method')">➕</button>
-                <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('payment_method')">🗑️</button>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:15px;"><label>Total Amount (₪) *</label><input type="number" id="i_amount"></div>
-
-        <button class="btn-action btn-green" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveInvoice()">Save Invoice</button>
-        <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('invoice-modal')">Cancel</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">New Invoice / Income</h3>
+ <div class="form-group" style="margin-bottom:10px;"><label>Invoice # *</label><input type="text" id="i_number" placeholder="98/300001"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Student Name *</label><select id="i_student_select"></select></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Invoice Date *</label><input type="date" id="i_date"></div>
+ <div class="form-group" style="margin-bottom:10px;">
+ <label>Payment Method</label>
+ <div style="display:flex; gap:6px;">
+ <select id="i_method" style="flex:1;"></select>
+ <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('payment_method')">➕</button>
+ <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('payment_method')">🗑️</button>
+ </div>
+ </div>
+ <div class="form-group" style="margin-bottom:15px;"><label>Total Amount (₪) *</label><input type="number" id="i_amount"></div>
+ <button class="btn-action btn-green" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveInvoice()">Save Invoice</button>
+ <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('invoice-modal')">Cancel</button>
+ </div>
 </div>
 
 <!-- Expense Modal -->
 <div class="modal-overlay" id="expense-modal" style="display:none;">
-    <div class="modal-content" style="text-align:left;">
-        <h3 style="margin-bottom:15px;">New Expense</h3>
-        <div class="form-group" style="margin-bottom:10px;"><label>Date *</label><input type="date" id="e_date"></div>
-        <div class="form-group" style="margin-bottom:10px;"><label>Vendor / Description *</label><input type="text" id="e_name"></div>
-        <div class="form-group" style="margin-bottom:10px;">
-            <label>Category</label>
-            <div style="display:flex; gap:6px;">
-                <select id="e_category" style="flex:1;"></select>
-                <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('expense_category')">➕</button>
-                <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('expense_category')">🗑️</button>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:15px;"><label>Amount (₪) *</label><input type="number" id="e_amount"></div>
-
-        <button class="btn-action btn-red" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveExpense()">Save Expense</button>
-        <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('expense-modal')">Cancel</button>
-    </div>
+ <div class="modal-content" style="text-align:left;">
+ <h3 style="margin-bottom:15px;">New Expense</h3>
+ <div class="form-group" style="margin-bottom:10px;"><label>Date *</label><input type="date" id="e_date"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Vendor / Description *</label><input type="text" id="e_name"></div>
+ <div class="form-group" style="margin-bottom:10px;">
+ <label>Category</label>
+ <div style="display:flex; gap:6px;">
+ <select id="e_category" style="flex:1;"></select>
+ <button class="btn-action btn-blue" type="button" onclick="addDynamicCategory('expense_category')">➕</button>
+ <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('expense_category')">🗑️</button>
+ </div>
+ </div>
+ <div class="form-group" style="margin-bottom:15px;"><label>Amount (₪) *</label><input type="number" id="e_amount"></div>
+ <button class="btn-action btn-red" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveExpense()">Save Expense</button>
+ <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('expense-modal')">Cancel</button>
+ </div>
 </div>
 
 <script>
-    let activeStudentId = null;
-    let allStudents = [];
-    let allInvoices = [];
-    let allExpenses = [];
-    let allCategories = [];
-    let selectedBookingSlot = null;
-
-    const fixedTimeSlots = [
-        '08:00 - 09:00', '09:15 - 10:15', '10:30 - 11:30',
-        '11:45 - 12:45', '13:00 - 14:00', '14:15 - 15:15',
-        '16:15 - 17:15', '17:30 - 18:30', '18:45 - 19:45', '20:00 - 21:00'
-    ];
-
-    window.onload = function() {
-        populateSlotSelects();
-        loadDashboardData();
-    };
-
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-        document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).style.display = 'block';
-        event.target.classList.add('active');
-    }
-
-    function populateSlotSelects() {
-        const sel = document.getElementById('block-slot-select');
-        sel.innerHTML = '';
-        fixedTimeSlots.forEach((slot) => {
-            sel.innerHTML += `<option value="${slot}">${slot}</option>`;
-        });
-
-        const sidebar = document.getElementById('time-sidebar');
-        sidebar.innerHTML = '';
-        fixedTimeSlots.forEach(slot => {
-            sidebar.innerHTML += `<div class="time-label">${slot}</div>`;
-        });
-    }
-
-    async function loadDashboardData() {
-        await loadCategories();
-        loadCalendarView();
-        loadStudents();
-        loadInvoices();
-        loadExpenses();
-    }
-
-    async function loadCategories() {
-        try {
-            const res = await fetch('/api/admin/categories');
-            const data = await res.json();
-            allCategories = data.categories || [];
-
-            const courseSel = document.getElementById('m_student_course');
-            const paySel = document.getElementById('i_method');
-            const expCatSel = document.getElementById('e_category');
-
-            courseSel.innerHTML = '<option value="Beg">Beg</option><option value="Adv">Adv</option>';
-            paySel.innerHTML = '<option value="Credit Card">Credit Card</option><option value="Bank Transfer">Bank Transfer</option>';
-            expCatSel.innerHTML = '<option value="Tools">Tools</option><option value="Ads">Ads</option>';
-
-            allCategories.forEach(c => {
-                const opt = `<option value="${c.name}" data-id="${c.id}">${c.name}</option>`;
-                if (c.type === 'course_type') courseSel.innerHTML += opt;
-                if (c.type === 'payment_method') paySel.innerHTML += opt;
-                if (c.type === 'expense_category') expCatSel.innerHTML += opt;
-            });
-        } catch(e) {}
-    }
-
-    async function addDynamicCategory(type) {
-        const name = prompt(`Enter new category name:`);
-        if (!name) return;
-        const res = await fetch('/api/admin/categories/add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type, name })
-        });
-        if (res.ok) loadCategories();
-    }
-
-    async function deleteDynamicCategory(type) {
-        let selectId = 'm_student_course';
-        if (type === 'payment_method') selectId = 'i_method';
-        if (type === 'expense_category') selectId = 'e_category';
-
-        const sel = document.getElementById(selectId);
-        const selectedOpt = sel.options[sel.selectedIndex];
-        const catId = selectedOpt ? selectedOpt.getAttribute('data-id') : null;
-
-        if (!catId) return alert('Cannot delete default categories.');
-
-        if (confirm(`Delete category "${selectedOpt.value}"?`)) {
-            await fetch('/api/admin/categories/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: catId })
-            });
-            loadCategories();
-        }
-    }
-
-    async function loadStudents() {
-        try {
-            const res = await fetch('/api/admin/students-full');
-            const data = await res.json();
-            allStudents = data.students || [];
-
-            const tbody = document.getElementById('students-table-body');
-            const pastTbody = document.getElementById('past-students-table-body');
-            const invSelect = document.getElementById('i_student_select');
-
-            tbody.innerHTML = ''; pastTbody.innerHTML = ''; invSelect.innerHTML = '';
-
-            let totalOwed = 0;
-
-            allStudents.forEach(s => {
-                invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`;
-
-                const studentPayed = allInvoices.filter(i => i.student_name === s.name)
-                    .reduce((sum, i) => sum + Number(i.amount_payed), 0);
-                const owed = Math.max(0, Number(s.total_amount || 0) - studentPayed);
-
-                if (s.is_past_student) {
-                    pastTbody.innerHTML += `
-                        <tr>
-                            <td><strong>${s.name}</strong></td>
-                            <td>${s.course_type}</td>
-                            <td>₪${s.total_amount}</td>
-                            <td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td>
-                        </tr>
-                    `;
-                } else {
-                    totalOwed += owed;
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${s.name}</strong></td>
-                            <td><span class="badge badge-paid">${s.course_type || 'Beg'}</span></td>
-                            <td>${s.default_quota || 2} lessons/week</td>
-                            <td>₪${s.total_amount} (Owed: <strong>₪${owed}</strong>)</td>
-                            <td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td>
-                        </tr>
-                    `;
-                }
-            });
-
-            document.getElementById('st-total-owed').innerText = '₪' + totalOwed.toFixed(2);
-        } catch(e) {}
-    }
-
-    function togglePastStudentsArchive() {
-        const cont = document.getElementById('past-students-container');
-        cont.style.display = cont.style.display === 'none' ? 'block' : 'none';
-    }
-
-    async function loadInvoices() {
-        try {
-            const res = await fetch('/api/admin/invoices');
-            const data = await res.json();
-            allInvoices = data.invoices || [];
-
-            const tbody = document.getElementById('invoices-table-body');
-            tbody.innerHTML = '';
-
-            let totalInc = 0;
-            allInvoices.forEach(i => {
-                totalInc += Number(i.amount_payed || 0);
-                tbody.innerHTML += `
-                    <tr>
-                        <td><strong>${i.invoice_number}</strong></td>
-                        <td>${i.student_name}</td>
-                        <td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td>
-                        <td>${i.payment_method}</td>
-                        <td style="color:var(--accent-green); font-weight:bold;">₪${i.amount_payed}</td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('st-total-income').innerText = '₪' + totalInc.toFixed(2);
-            updateNetProfit();
-        } catch(e) {}
-    }
-
-    async function loadExpenses() {
-        try {
-            const res = await fetch('/api/admin/expenses');
-            const data = await res.json();
-            allExpenses = data.expenses || [];
-
-            const tbody = document.getElementById('expenses-table-body');
-            tbody.innerHTML = '';
-
-            let totalExp = 0;
-            allExpenses.forEach(e => {
-                totalExp += Number(e.amount || 0);
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td>
-                        <td><strong>${e.tr_name}</strong></td>
-                        <td><span class="badge badge-pending">${e.category}</span></td>
-                        <td style="color:var(--accent-red); font-weight:bold;">₪${e.amount}</td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('st-total-expenses').innerText = '₪' + totalExp.toFixed(2);
-            updateNetProfit();
-        } catch(e) {}
-    }
-
-    function updateNetProfit() {
-        const inc = parseFloat(document.getElementById('st-total-income').innerText.replace('₪','')) || 0;
-        const exp = parseFloat(document.getElementById('st-total-expenses').innerText.replace('₪','')) || 0;
-        document.getElementById('st-net-profit').innerText = '₪' + (inc - exp).toFixed(2);
-    }
-
-    async function loadCalendarView() {
-        try {
-            const slotsRes = await fetch('/api/slots');
-            const slotsData = await slotsRes.json();
-            const appointments = slotsData.appointments || [];
-            const days = slotsData.days || [];
-
-            const blockedRes = await fetch('/api/admin/blocked-slots');
-            const blockedData = await blockedRes.json();
-            const blockedSlots = blockedData.blockedSlots || [];
-
-            days.forEach((dayInfo, index) => {
-                if (index < 5) {
-                    const headerEl = document.getElementById(`day-header-${index}`);
-                    headerEl.innerText = `${dayInfo.name} (${dayInfo.date})`;
-
-                    const colEl = document.getElementById(`day-col-${index}`);
-                    colEl.innerHTML = '';
-
-                    fixedTimeSlots.forEach(slotTime => {
-                        const startTime = slotTime.split(' - ')[0];
-                        const endTime = slotTime.split(' - ')[1];
-
-                        const booked = appointments.find(a => a.day_index === index && a.start_time === startTime);
-                        const blocked = blockedSlots.find(b => b.day_index === index && b.start_time === startTime);
-
-                        let classNames = 'slot-item';
-                        let content = '';
-
-                        if (booked) {
-                            classNames += ' slot-booked';
-                            content = `👤 ${booked.booked_by_name}`;
-                        } else if (blocked) {
-                            classNames += ' slot-blocked';
-                            content = `🚫 Blocked`;
-                        } else {
-                            content = `<span style="color:var(--text-muted);">Available</span>`;
-                        }
-
-                        colEl.innerHTML += `<div class="${classNames}" onclick="openDirectBookModal(${index}, '${startTime}', '${endTime}', '${booked ? booked.booked_by_name : ''}')">${content}</div>`;
-                    });
-                }
-            });
-        } catch(e) {}
-    }
-
-    async function openHistoryModal() {
-        const res = await fetch('/api/admin/history-appointments');
-        const data = await res.json();
-        const tbody = document.getElementById('history-table-body');
-        tbody.innerHTML = '';
-        (data.appointments || []).forEach(a => {
-            tbody.innerHTML += `<tr><td>${a.appointment_date ? a.appointment_date.substring(0,10) : '-'}</td><td><strong>${a.booked_by_name}</strong></td><td>${a.start_time}-${a.end_time}</td></tr>`;
-        });
-        document.getElementById('history-modal').style.display = 'flex';
-    }
-
-    function openDirectBookModal(dayIndex, startTime, endTime, currentBooked) {
-        if (currentBooked) return alert(`Slot already booked by ${currentBooked}`);
-        selectedBookingSlot = { dayIndex, startTime, endTime };
-        
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-        document.getElementById('direct-book-info').innerText = `Slot: ${dayNames[dayIndex]} (${startTime} - ${endTime})`;
-
-        const select = document.getElementById('direct-book-student');
-        select.innerHTML = '';
-        allStudents.filter(s => !s.is_past_student).forEach(s => {
-            select.innerHTML += `<option value="${s.name}">${s.name}</option>`;
-        });
-
-        document.getElementById('direct-book-modal').style.display = 'flex';
-    }
-
-    async function confirmDirectBooking() {
-        const studentName = document.getElementById('direct-book-student').value;
-        if (!studentName || !selectedBookingSlot) return;
-
-        await fetch('/api/admin/book-direct', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                dayIndex: selectedBookingSlot.dayIndex,
-                startTime: selectedBookingSlot.startTime,
-                endTime: selectedBookingSlot.endTime,
-                studentName
-            })
-        });
-
-        closeModal('direct-book-modal');
-        loadCalendarView();
-    }
-
-    async function saveSlotBlock() {
-        const slotVal = document.getElementById('block-slot-select').value;
-        const [startTime, endTime] = slotVal.split(' - ');
-
-        const body = {
-            dayIndex: Number(document.getElementById('block-day-index').value),
-            startTime,
-            endTime
-        };
-
-        const res = await fetch('/api/admin/blocked-slots', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        if (res.ok) {
-            alert('Slot blocked successfully!');
-            loadCalendarView();
-        }
-    }
-
-    function openResetWeekModal() {
-        document.getElementById('reset-sunday-date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('reset-week-modal').style.display = 'flex';
-    }
-
-    async function confirmResetWeek() {
-        const sundayDate = document.getElementById('reset-sunday-date').value;
-        if (!sundayDate) return alert('Please select Sunday date');
-
-        await fetch('/api/admin/reset-slots', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sundayDate })
-        });
-
-        closeModal('reset-week-modal');
-        loadCalendarView();
-    }
-
-    function openStudentModal(id = null) {
-        activeStudentId = id;
-        document.getElementById('m_student_start_date').value = new Date().toISOString().split('T')[0];
-        if (id) {
-            const s = allStudents.find(x => x.id == id);
-            if (s) {
-                document.getElementById('m_student_name').value = s.name;
-                document.getElementById('m_student_phone').value = s.phone || '';
-                document.getElementById('m_student_email').value = s.email || '';
-                document.getElementById('m_student_quota').value = s.default_quota || 2;
-                document.getElementById('m_student_amount').value = s.total_amount || 4900;
-                document.getElementById('m_student_is_past').value = s.is_past_student ? 'true' : 'false';
-            }
-        } else {
-            document.getElementById('m_student_name').value = '';
-            document.getElementById('m_student_phone').value = '';
-            document.getElementById('m_student_email').value = '';
-            document.getElementById('m_student_quota').value = 2;
-            document.getElementById('m_student_amount').value = 4900;
-            document.getElementById('m_student_is_past').value = 'false';
-        }
-        document.getElementById('student-modal').style.display = 'flex';
-    }
-
-    async function saveStudent() {
-        const nameInput = document.getElementById('m_student_name').value;
-        if (!nameInput) return alert('Student Name is required!');
-
-        const body = {
-            id: activeStudentId,
-            name: nameInput,
-            phone: document.getElementById('m_student_phone').value,
-            email: document.getElementById('m_student_email').value,
-            course_type: document.getElementById('m_student_course').value,
-            default_quota: Number(document.getElementById('m_student_quota').value),
-            total_amount: Number(document.getElementById('m_student_amount').value),
-            total_lessons: Number(document.getElementById('m_student_total_lessons').value),
-            process_duration_months: Number(document.getElementById('m_student_duration').value),
-            start_date: document.getElementById('m_student_start_date').value,
-            is_past_student: document.getElementById('m_student_is_past').value === 'true'
-        };
-
-        const res = await fetch('/api/admin/students-full/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        if (res.ok) {
-            alert('Student saved successfully!');
-            closeModal('student-modal');
-            loadStudents();
-        } else {
-            alert('Error saving student.');
-        }
-    }
-
-    function openInvoiceModal() {
-        document.getElementById('i_date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('invoice-modal').style.display = 'flex';
-    }
-
-    async function saveInvoice() {
-        const body = {
-            invoice_number: document.getElementById('i_number').value,
-            student_name: document.getElementById('i_student_select').value,
-            invoice_date: document.getElementById('i_date').value,
-            payment_method: document.getElementById('i_method').value,
-            amount_payed: Number(document.getElementById('i_amount').value)
-        };
-
-        const res = await fetch('/api/admin/invoices/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        if (res.ok) {
-            alert('Invoice saved successfully!');
-            closeModal('invoice-modal');
-            loadInvoices();
-            loadStudents();
-        }
-    }
-
-    function openExpenseModal() {
-        document.getElementById('e_date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('expense-modal').style.display = 'flex';
-    }
-
-    async function saveExpense() {
-        const body = {
-            expense_date: document.getElementById('e_date').value,
-            tr_name: document.getElementById('e_name').value,
-            category: document.getElementById('e_category').value,
-            amount: Number(document.getElementById('e_amount').value)
-        };
-
-        const res = await fetch('/api/admin/expenses/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        if (res.ok) {
-            alert('Expense saved successfully!');
-            closeModal('expense-modal');
-            loadExpenses();
-        }
-    }
-
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+ let activeStudentId = null;
+ let allStudents = [];
+ let allInvoices = [];
+ let allExpenses = [];
+ let allCategories = [];
+ let selectedBookingSlot = null;
+
+ const fixedTimeSlots = [
+ '08:00 - 09:00', '09:15 - 10:15', '10:30 - 11:30', '11:45 - 12:45', '13:00 - 14:00',
+ '14:15 - 15:15', '16:15 - 17:15', '17:30 - 18:30', '18:45 - 19:45', '20:00 - 21:00'
+ ];
+
+ // ============ 🔐 SECURITY / AUTH LAYER ============
+ function getToken() { return localStorage.getItem('admin_token'); }
+ function setToken(t) { localStorage.setItem('admin_token', t); }
+ function clearToken() { localStorage.removeItem('admin_token'); }
+ function showLogin() { document.getElementById('login-modal').style.display = 'flex'; }
+
+ async function apiFetch(url, opts = {}) {
+ opts.headers = Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + (getToken() || '') });
+ const res = await fetch(url, opts);
+ if (res.status === 401) { clearToken(); showLogin(); throw new Error('Unauthorized'); }
+ return res;
+ }
+
+ async function handleLogin() {
+ const pass = document.getElementById('admin-pass-input').value;
+ const errEl = document.getElementById('login-error');
+ errEl.innerText = '';
+ try {
+ const res = await fetch('/api/admin/login', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ password: pass })
+ });
+ const data = await res.json();
+ if (res.ok && data.token) {
+ setToken(data.token);
+ document.getElementById('admin-pass-input').value = '';
+ document.getElementById('login-modal').style.display = 'none';
+ loadDashboardData();
+ } else {
+ errEl.innerText = data.error || 'Login failed';
+ }
+ } catch (e) { errEl.innerText = 'Connection error. Please try again.'; }
+ }
+
+ function logout() { clearToken(); showLogin(); }
+
+ window.onload = async function() {
+ populateSlotSelects();
+ const token = getToken();
+ if (!token) { showLogin(); return; }
+ try {
+ const res = await fetch('/api/admin/verify', { headers: { 'Authorization': 'Bearer ' + token } });
+ if (res.ok) {
+ document.getElementById('login-modal').style.display = 'none';
+ loadDashboardData();
+ } else {
+ clearToken(); showLogin();
+ }
+ } catch (e) { showLogin(); }
+ };
+ // ============ END AUTH LAYER ============
+
+ function switchTab(tabId) {
+ document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+ document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+ document.getElementById(tabId).style.display = 'block';
+ event.target.classList.add('active');
+ }
+
+ function populateSlotSelects() {
+ const sel = document.getElementById('block-slot-select');
+ sel.innerHTML = '';
+ fixedTimeSlots.forEach(slot => { sel.innerHTML += `<option value="${slot}">${slot}</option>`; });
+ const sidebar = document.getElementById('time-sidebar');
+ sidebar.innerHTML = '';
+ fixedTimeSlots.forEach(slot => { sidebar.innerHTML += `<div class="time-label">${slot}</div>`; });
+ }
+
+ async function loadDashboardData() {
+ await loadCategories();
+ loadCalendarView();
+ loadStudents();
+ loadInvoices();
+ loadExpenses();
+ }
+
+ async function loadCategories() {
+ try {
+ const res = await apiFetch('/api/admin/categories');
+ const data = await res.json();
+ allCategories = data.categories || [];
+ const courseSel = document.getElementById('m_student_course');
+ const paySel = document.getElementById('i_method');
+ const expCatSel = document.getElementById('e_category');
+ courseSel.innerHTML = '<option value="Beg">Beg</option><option value="Adv">Adv</option>';
+ paySel.innerHTML = '<option value="Credit Card">Credit Card</option><option value="Bank Transfer">Bank Transfer</option>';
+ expCatSel.innerHTML = '<option value="Tools">Tools</option><option value="Ads">Ads</option>';
+ allCategories.forEach(c => {
+ const opt = `<option value="${c.name}" data-id="${c.id}">${c.name}</option>`;
+ if (c.type === 'course_type') courseSel.innerHTML += opt;
+ if (c.type === 'payment_method') paySel.innerHTML += opt;
+ if (c.type === 'expense_category') expCatSel.innerHTML += opt;
+ });
+ } catch(e) {}
+ }
+
+ async function addDynamicCategory(type) {
+ const name = prompt(`Enter new category name:`);
+ if (!name) return;
+ const res = await apiFetch('/api/admin/categories/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, name }) });
+ if (res.ok) loadCategories();
+ }
+
+ async function deleteDynamicCategory(type) {
+ let selectId = 'm_student_course';
+ if (type === 'payment_method') selectId = 'i_method';
+ if (type === 'expense_category') selectId = 'e_category';
+ const sel = document.getElementById(selectId);
+ const selectedOpt = sel.options[sel.selectedIndex];
+ const catId = selectedOpt ? selectedOpt.getAttribute('data-id') : null;
+ if (!catId) return alert('Cannot delete default categories.');
+ if (confirm(`Delete category "${selectedOpt.value}"?`)) {
+ await apiFetch('/api/admin/categories/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: catId }) });
+ loadCategories();
+ }
+ }
+
+ async function loadStudents() {
+ try {
+ const res = await apiFetch('/api/admin/students-full');
+ const data = await res.json();
+ allStudents = data.students || [];
+ const tbody = document.getElementById('students-table-body');
+ const pastTbody = document.getElementById('past-students-table-body');
+ const invSelect = document.getElementById('i_student_select');
+ tbody.innerHTML = ''; pastTbody.innerHTML = ''; invSelect.innerHTML = '';
+ let totalOwed = 0;
+ allStudents.forEach(s => {
+ invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+ const studentPayed = allInvoices.filter(i => i.student_name === s.name).reduce((sum, i) => sum + Number(i.amount_payed), 0);
+ const owed = Math.max(0, Number(s.total_amount || 0) - studentPayed);
+ if (s.is_past_student) {
+ pastTbody.innerHTML += `<tr><td><strong>${s.name}</strong></td><td>${s.course_type || '-'}</td><td>₪${s.total_amount || 0}</td><td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td></tr>`;
+ } else {
+ totalOwed += owed;
+ tbody.innerHTML += `<tr><td><strong>${s.name}</strong></td><td><span class="badge badge-paid">${s.course_type || 'Beg'}</span></td><td>${s.default_quota || 2} lessons/week</td><td>₪${s.total_amount || 0} (Owed: <strong>₪${owed}</strong>)</td><td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td></tr>`;
+ }
+ });
+ document.getElementById('st-total-owed').innerText = '₪' + totalOwed.toFixed(2);
+ } catch(e) {}
+ }
+
+ function togglePastStudentsArchive() {
+ const cont = document.getElementById('past-students-container');
+ cont.style.display = cont.style.display === 'none' ? 'block' : 'none';
+ }
+
+ async function loadInvoices() {
+ try {
+ const res = await apiFetch('/api/admin/invoices');
+ const data = await res.json();
+ allInvoices = data.invoices || [];
+ const tbody = document.getElementById('invoices-table-body');
+ tbody.innerHTML = '';
+ let totalInc = 0;
+ allInvoices.forEach(i => {
+ totalInc += Number(i.amount_payed || 0);
+ tbody.innerHTML += `<tr><td><strong>${i.invoice_number}</strong></td><td>${i.student_name}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.payment_method}</td><td style="color:var(--accent-green); font-weight:bold;">₪${i.amount_payed}</td></tr>`;
+ });
+ document.getElementById('st-total-income').innerText = '₪' + totalInc.toFixed(2);
+ updateNetProfit();
+ } catch(e) {}
+ }
+
+ async function loadExpenses() {
+ try {
+ const res = await apiFetch('/api/admin/expenses');
+ const data = await res.json();
+ allExpenses = data.expenses || [];
+ const tbody = document.getElementById('expenses-table-body');
+ tbody.innerHTML = '';
+ let totalExp = 0;
+ allExpenses.forEach(e => {
+ totalExp += Number(e.amount || 0);
+ tbody.innerHTML += `<tr><td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td><td><strong>${e.tr_name}</strong></td><td><span class="badge badge-pending">${e.category}</span></td><td style="color:var(--accent-red); font-weight:bold;">₪${e.amount}</td></tr>`;
+ });
+ document.getElementById('st-total-expenses').innerText = '₪' + totalExp.toFixed(2);
+ updateNetProfit();
+ } catch(e) {}
+ }
+
+ function updateNetProfit() {
+ const inc = parseFloat(document.getElementById('st-total-income').innerText.replace('₪','')) || 0;
+ const exp = parseFloat(document.getElementById('st-total-expenses').innerText.replace('₪','')) || 0;
+ document.getElementById('st-net-profit').innerText = '₪' + (inc - exp).toFixed(2);
+ }
+
+ async function loadCalendarView() {
+ try {
+ const slotsRes = await apiFetch('/api/slots');
+ const slotsData = await slotsRes.json();
+ const appointments = slotsData.appointments || [];
+ const days = slotsData.days || [];
+ const blockedRes = await apiFetch('/api/admin/blocked-slots');
+ const blockedData = await blockedRes.json();
+ const blockedSlots = blockedData.blockedSlots || [];
+ days.forEach((dayInfo, index) => {
+ if (index < 5) {
+ document.getElementById(`day-header-${index}`).innerText = `${dayInfo.name} (${dayInfo.date})`;
+ const colEl = document.getElementById(`day-col-${index}`);
+ colEl.innerHTML = '';
+ fixedTimeSlots.forEach(slotTime => {
+ const startTime = slotTime.split(' - ')[0];
+ const endTime = slotTime.split(' - ')[1];
+ const booked = appointments.find(a => a.day_index === index && a.start_time === startTime);
+ const blocked = blockedSlots.find(b => b.day_index === index && b.start_time === startTime);
+ let classNames = 'slot-item'; let content = '';
+ if (booked) { classNames += ' slot-booked'; content = `👤 ${booked.booked_by_name}`; }
+ else if (blocked) { classNames += ' slot-blocked'; content = `🚫 Blocked`; }
+ else { content = `<span style="color:var(--text-muted);">Available</span>`; }
+ colEl.innerHTML += `<div class="${classNames}" onclick="openDirectBookModal(${index}, '${startTime}', '${endTime}', '${booked ? booked.booked_by_name : ''}')">${content}</div>`;
+ });
+ }
+ });
+ } catch(e) {}
+ }
+
+ async function openHistoryModal() {
+ const res = await apiFetch('/api/admin/history-appointments');
+ const data = await res.json();
+ const tbody = document.getElementById('history-table-body');
+ tbody.innerHTML = '';
+ (data.appointments || []).forEach(a => {
+ tbody.innerHTML += `<tr><td>${a.appointment_date ? a.appointment_date.substring(0,10) : '-'}</td><td><strong>${a.booked_by_name}</strong></td><td>${a.start_time}-${a.end_time}</td></tr>`;
+ });
+ document.getElementById('history-modal').style.display = 'flex';
+ }
+
+ function openDirectBookModal(dayIndex, startTime, endTime, currentBooked) {
+ if (currentBooked) return alert(`Slot already booked by ${currentBooked}`);
+ selectedBookingSlot = { dayIndex, startTime, endTime };
+ const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+ document.getElementById('direct-book-info').innerText = `Slot: ${dayNames[dayIndex]} (${startTime} - ${endTime})`;
+ const select = document.getElementById('direct-book-student');
+ select.innerHTML = '';
+ allStudents.filter(s => !s.is_past_student).forEach(s => { select.innerHTML += `<option value="${s.name}">${s.name}</option>`; });
+ document.getElementById('direct-book-modal').style.display = 'flex';
+ }
+
+ async function confirmDirectBooking() {
+ const studentName = document.getElementById('direct-book-student').value;
+ if (!studentName || !selectedBookingSlot) return;
+ await apiFetch('/api/admin/book-direct', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dayIndex: selectedBookingSlot.dayIndex, startTime: selectedBookingSlot.startTime, endTime: selectedBookingSlot.endTime, studentName }) });
+ closeModal('direct-book-modal');
+ loadCalendarView();
+ }
+
+ async function saveSlotBlock() {
+ const slotVal = document.getElementById('block-slot-select').value;
+ const [startTime, endTime] = slotVal.split(' - ');
+ const body = { dayIndex: Number(document.getElementById('block-day-index').value), startTime, endTime };
+ const res = await apiFetch('/api/admin/blocked-slots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) { alert('Slot blocked successfully!'); loadCalendarView(); }
+ }
+
+ function openResetWeekModal() {
+ document.getElementById('reset-sunday-date').value = new Date().toISOString().split('T')[0];
+ document.getElementById('reset-week-modal').style.display = 'flex';
+ }
+
+ async function confirmResetWeek() {
+ const sundayDate = document.getElementById('reset-sunday-date').value;
+ if (!sundayDate) return alert('Please select Sunday date');
+ await apiFetch('/api/admin/reset-slots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sundayDate }) });
+ closeModal('reset-week-modal');
+ loadCalendarView();
+ }
+
+ function openStudentModal(id = null) {
+ activeStudentId = id;
+ document.getElementById('m_student_start_date').value = new Date().toISOString().split('T')[0];
+ if (id) {
+ const s = allStudents.find(x => x.id == id);
+ if (s) {
+ document.getElementById('m_student_name').value = s.name;
+ document.getElementById('m_student_phone').value = s.phone || '';
+ document.getElementById('m_student_email').value = s.email || '';
+ document.getElementById('m_student_quota').value = s.default_quota || 2;
+ document.getElementById('m_student_amount').value = s.total_amount || 4900;
+ document.getElementById('m_student_is_past').value = s.is_past_student ? 'true' : 'false';
+ }
+ } else {
+ document.getElementById('m_student_name').value = '';
+ document.getElementById('m_student_phone').value = '';
+ document.getElementById('m_student_email').value = '';
+ document.getElementById('m_student_quota').value = 2;
+ document.getElementById('m_student_amount').value = 4900;
+ document.getElementById('m_student_is_past').value = 'false';
+ }
+ document.getElementById('student-modal').style.display = 'flex';
+ }
+
+ async function saveStudent() {
+ const nameInput = document.getElementById('m_student_name').value;
+ if (!nameInput) return alert('Student Name is required!');
+ const body = {
+ id: activeStudentId, name: nameInput,
+ phone: document.getElementById('m_student_phone').value,
+ email: document.getElementById('m_student_email').value,
+ course_type: document.getElementById('m_student_course').value,
+ default_quota: Number(document.getElementById('m_student_quota').value),
+ total_amount: Number(document.getElementById('m_student_amount').value),
+ total_lessons: Number(document.getElementById('m_student_total_lessons').value),
+ process_duration_months: Number(document.getElementById('m_student_duration').value),
+ start_date: document.getElementById('m_student_start_date').value,
+ is_past_student: document.getElementById('m_student_is_past').value === 'true'
+ };
+ const res = await apiFetch('/api/admin/students-full/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) { alert('Student saved successfully!'); closeModal('student-modal'); loadStudents(); }
+ else { alert('Error saving student.'); }
+ }
+
+ function openInvoiceModal() {
+ document.getElementById('i_date').value = new Date().toISOString().split('T')[0];
+ document.getElementById('invoice-modal').style.display = 'flex';
+ }
+
+ async function saveInvoice() {
+ const body = {
+ invoice_number: document.getElementById('i_number').value,
+ student_name: document.getElementById('i_student_select').value,
+ invoice_date: document.getElementById('i_date').value,
+ payment_method: document.getElementById('i_method').value,
+ amount_payed: Number(document.getElementById('i_amount').value)
+ };
+ const res = await apiFetch('/api/admin/invoices/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) { alert('Invoice saved successfully!'); closeModal('invoice-modal'); loadInvoices(); loadStudents(); }
+ }
+
+ function openExpenseModal() {
+ document.getElementById('e_date').value = new Date().toISOString().split('T')[0];
+ document.getElementById('expense-modal').style.display = 'flex';
+ }
+
+ async function saveExpense() {
+ const body = {
+ expense_date: document.getElementById('e_date').value,
+ tr_name: document.getElementById('e_name').value,
+ category: document.getElementById('e_category').value,
+ amount: Number(document.getElementById('e_amount').value)
+ };
+ const res = await apiFetch('/api/admin/expenses/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) { alert('Expense saved successfully!'); closeModal('expense-modal'); loadExpenses(); }
+ }
+
+ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 
 </body>
