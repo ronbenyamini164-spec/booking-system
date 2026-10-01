@@ -1,401 +1,414 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מערכת קביעת שיעורים</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8f9fa; margin: 0; padding: 15px; direction: rtl; }
-        .container { max-width: 1050px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
-        h1 { text-align: center; color: #1a73e8; margin-bottom: 5px; font-size: 24px; }
-        p.subtitle { text-align: center; color: #5f6368; margin-bottom: 20px; font-size: 14px; }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>מערכת קביעת שיעורים</title>
+ <style>
+ body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8f9fa; margin: 0; padding: 15px; direction: rtl; }
+ .container { max-width: 1050px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
+ h1 { text-align: center; color: #1a73e8; margin-bottom: 5px; font-size: 24px; }
+ p.subtitle { text-align: center; color: #5f6368; margin-bottom: 20px; font-size: 14px; }
 
-        .login-box { max-width: 400px; margin: 40px auto; padding: 25px; background: #fff; border-radius: 10px; border: 1px solid #dadce0; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .login-box input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; margin-bottom: 15px; text-align: center; }
-        .login-box button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+ .login-box { max-width: 400px; margin: 40px auto; padding: 25px; background: #fff; border-radius: 10px; border: 1px solid #dadce0; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+ .login-box input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; margin-bottom: 15px; text-align: center; }
+ .login-box button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
 
-        .calendar-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #dadce0; border-radius: 8px; margin-bottom: 20px; }
-        .calendar-grid { display: grid; grid-template-columns: 80px repeat(5, minmax(130px, 1fr)); min-width: 730px; background: white; }
-        .header-cell { background: #f1f3f4; padding: 10px 5px; text-align: center; font-weight: bold; border-bottom: 2px solid #dadce0; border-left: 1px solid #dadce0; font-size: 13px; white-space: pre-line; box-sizing: border-box; }
-        .time-cell { background: #fafafa; border-bottom: 1px solid #f1f3f4; border-left: 1px solid #dadce0; text-align: center; font-size: 11px; color: #70757a; height: 50px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-        
-        .day-column { position: relative; display: grid; grid-template-rows: repeat(10, 50px); border-left: 1px solid #dadce0; }
-        .slot-btn { border: none; border-bottom: 1px solid #f1f3f4; background: white; color: #333; font-size: 12px; cursor: pointer; width: 100%; height: 50px; transition: background 0.15s; outline: none; box-sizing: border-box; margin: 0; padding: 0; }
-        .slot-btn:hover:not(:disabled) { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
-        
-        /* סלוטים חסומים / תפוסים - אדום חלק ללא טקסט וללא גבול פנימי */
-        .slot-btn:disabled { 
-            background: #fce8e6 !important; 
-            border: none !important; 
-            border-bottom: 1px solid #fce8e6 !important;
-            cursor: not-allowed; 
-            color: transparent !important;
-        }
+ .calendar-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #dadce0; border-radius: 8px; margin-bottom: 20px; }
+ .calendar-grid { display: grid; grid-template-columns: 80px repeat(5, minmax(130px, 1fr)); min-width: 730px; background: white; }
+ .header-cell { background: #f1f3f4; padding: 10px 5px; text-align: center; font-weight: bold; border-bottom: 2px solid #dadce0; border-left: 1px solid #dadce0; font-size: 13px; white-space: pre-line; box-sizing: border-box; }
+ .time-cell { background: #fafafa; border-bottom: 1px solid #f1f3f4; border-left: 1px solid #dadce0; text-align: center; font-size: 11px; color: #70757a; height: 50px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+ 
+ .day-column { position: relative; display: grid; grid-template-rows: repeat(10, 50px); border-left: 1px solid #dadce0; }
+ .slot-btn { border: none; border-bottom: 1px solid #f1f3f4; background: white; color: #333; font-size: 12px; cursor: pointer; width: 100%; height: 50px; transition: background 0.15s; outline: none; box-sizing: border-box; margin: 0; padding: 0; }
+ .slot-btn:hover:not(:disabled) { background: #e8f0fe; color: #1a73e8; font-weight: bold; }
+ 
+ /* סלוטים לא זמינים (חסומים / תפוסים / לא מאושרים) — אפור ניטרלי עם הכיתוב "לא זמין", ללא פירוט סיבה */
+ .slot-btn:disabled { 
+ background: #fce8e6 !important; 
+ border: none !important; 
+ border-bottom: 1px solid #f6c9c4 !important;
+ cursor: not-allowed; 
+ color: #c5221f !important;
+ font-size: 11px !important;
+ }
 
-        .block-overlay { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-sizing: border-box; padding: 2px; text-align: center; }
-        .block-booked { background-color: #fce8e6; color: transparent; border: none; cursor: not-allowed; }
-        .block-fixed { background-color: #e6f4ea; color: #137333; border: 1px solid #34a853; border-radius: 6px; cursor: not-allowed; }
-        .block-selected { background-color: #8ab4f8; color: #ffffff; border: 1px solid #1a73e8; border-radius: 6px; }
+ .block-overlay { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; z-index: 10; box-sizing: border-box; padding: 2px; text-align: center; }
+ .block-booked { background-color: #fce8e6; color: #c5221f; border: none; border-bottom: 1px solid #f6c9c4; cursor: not-allowed; font-weight: 500; }
+ .block-fixed { background-color: #e6f4ea; color: #137333; border: 1px solid #34a853; border-radius: 6px; cursor: not-allowed; }
+ .block-selected { background-color: #8ab4f8; color: #ffffff; border: 1px solid #1a73e8; border-radius: 6px; }
 
-        .selected-badge { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; margin: 4px; }
-        .remove-badge { cursor: pointer; color: #c5221f; font-weight: bold; }
+ .selected-badge { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; margin: 4px; }
+ .remove-badge { cursor: pointer; color: #c5221f; font-weight: bold; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); box-sizing: border-box; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-confirm { flex: 1; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+ .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; }
+ .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); box-sizing: border-box; }
+ .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+ .btn-confirm { flex: 1; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+ .btn-cancel { flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        .booking-box { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0; }
-        #status-banner { padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
-        .banner-closed { background: #f8d7da; color: #721c24; }
-        .banner-info { background: #e8f0fe; color: #1a73e8; }
-        #message { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; display: none; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-    </style>
+ .booking-box { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0; }
+ #status-banner { padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 15px; display: none; }
+ .banner-closed { background: #f8d7da; color: #721c24; }
+ .banner-info { background: #e8f0fe; color: #1a73e8; }
+ #message { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; display: none; }
+ .success { background: #d4edda; color: #155724; }
+ .error { background: #f8d7da; color: #721c24; }
+ </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>מערכת קביעת שיעורים</h1>
+ <h1>מערכת קביעת שיעורים</h1>
 
-    <div id="login-section" class="login-box">
-        <h3>התחברות למערכת</h3>
-        <p style="font-size: 14px; color: #666;">הכנס את שמך המלא בדיוק כפי שמופיע במאגר</p>
-        <input type="text" id="student-name-input" placeholder="שם מלא (לדוגמה: ישראל ישראלי)">
-        <button onclick="loginStudent()">התחבר ליומן</button>
-        <div id="login-error" style="color: red; margin-top: 10px; font-size: 14px; display: none;"></div>
-    </div>
+ <div id="login-section" class="login-box">
+ <h3>התחברות למערכת</h3>
+ <p style="font-size: 14px; color: #666;">הכנס את שמך המלא בדיוק כפי שמופיע במאגר</p>
+ <input type="text" id="student-name-input" placeholder="שם מלא (לדוגמה: ישראל ישראלי)">
+ <button onclick="loginStudent()">התחבר ליומן</button>
+ <div id="login-error" style="color: red; margin-top: 10px; font-size: 14px; display: none;"></div>
+ </div>
 
-    <div id="calendar-section" style="display: none;">
-        <p class="subtitle" id="welcome-msg"></p>
+ <div id="calendar-section" style="display: none;">
+ <p class="subtitle" id="welcome-msg"></p>
 
-        <div id="status-banner"></div>
+ <div id="status-banner"></div>
 
-        <div class="calendar-wrapper">
-            <div class="calendar-grid">
-                <div class="header-cell">שעה</div>
-                <div class="header-cell" id="h-0">ראשון</div>
-                <div class="header-cell" id="h-1">שני</div>
-                <div class="header-cell" id="h-2">שלישי</div>
-                <div class="header-cell" id="h-3">רביעי</div>
-                <div class="header-cell" id="h-4">חמישי</div>
+ <div class="calendar-wrapper">
+ <div class="calendar-grid">
+ <div class="header-cell">שעה</div>
+ <div class="header-cell" id="h-0">ראשון</div>
+ <div class="header-cell" id="h-1">שני</div>
+ <div class="header-cell" id="h-2">שלישי</div>
+ <div class="header-cell" id="h-3">רביעי</div>
+ <div class="header-cell" id="h-4">חמישי</div>
 
-                <div id="fixed-time-column"></div>
+ <div id="fixed-time-column"></div>
 
-                <div class="day-column" id="col-0"></div>
-                <div class="day-column" id="col-1"></div>
-                <div class="day-column" id="col-2"></div>
-                <div class="day-column" id="col-3"></div>
-                <div class="day-column" id="col-4"></div>
-            </div>
-        </div>
+ <div class="day-column" id="col-0"></div>
+ <div class="day-column" id="col-1"></div>
+ <div class="day-column" id="col-2"></div>
+ <div class="day-column" id="col-3"></div>
+ <div class="day-column" id="col-4"></div>
+ </div>
+ </div>
 
-        <div class="booking-box">
-            <h3>השיעורים שנבחרו לקביעה</h3>
-            <div id="selected-list"><span style="color: #888;">טרם נבחרו שיעורים נוספים ביומן</span></div>
-            <button class="btn-confirm" id="submit-btn" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;" onclick="openConfirmModal()">אישור קביעת השיעורים</button>
-            <div id="message"></div>
-        </div>
-    </div>
+ <div class="booking-box">
+ <h3>השיעורים שנבחרו לקביעה</h3>
+ <div id="selected-list"><span style="color: #888;">טרם נבחרו שיעורים נוספים ביומן</span></div>
+ <button class="btn-confirm" id="submit-btn" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px;" onclick="openConfirmModal()">אישור קביעת השיעורים</button>
+ <div id="message"></div>
+ </div>
+ </div>
 </div>
 
 <div class="modal-overlay" id="confirm-modal">
-    <div class="modal-content">
-        <h3>אישור שיבוץ שיעורים</h3>
-        <div id="confirm-details" style="text-align: right; margin: 15px 0; background: #f8f9fa; padding: 12px; border-radius: 6px;"></div>
-        <div class="modal-actions">
-            <button class="btn-confirm" onclick="submitBookingFinal()">אישור סופי</button>
-            <button class="btn-cancel" onclick="closeConfirmModal()">חזור לעריכה</button>
-        </div>
-    </div>
+ <div class="modal-content">
+ <h3>אישור שיבוץ שיעורים</h3>
+ <div id="confirm-details" style="text-align: right; margin: 15px 0; background: #f8f9fa; padding: 12px; border-radius: 6px;"></div>
+ <div class="modal-actions">
+ <button class="btn-confirm" onclick="submitBookingFinal()">אישור סופי</button>
+ <button class="btn-cancel" onclick="closeConfirmModal()">חזור לעריכה</button>
+ </div>
+ </div>
 </div>
 
 <script>
-    let currentStudentName = '';
-    let studentData = null;
-    let selectedSlots = [];
-    let globalAppointments = [];
-    let globalDays = [];
-    let fixedSlots = [];
-    let allGlobalBlocked = [];
-    let isStudentAllowedToBook = true;
+ let currentStudentName = '';
+ let studentData = null;
+ let selectedSlots = [];
+ let globalAppointments = [];
+ let globalDays = [];
+ let fixedSlots = [];
+ let allGlobalBlocked = [];
+ let isStudentAllowedToBook = true;
 
-    const ROW_HEIGHT = 50;
-    const GRID_START_MINS = 8 * 60;
-    const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
+ const ROW_HEIGHT = 50;
+ const GRID_START_MINS = 8 * 60;
+ const TOTAL_GRID_MINS = (21 * 60) - GRID_START_MINS;
 
-    function timeToMins(t) {
-        const [h, m] = t.split(':').map(Number);
-        return h * 60 + m;
-    }
+ function timeToMins(t) {
+ const [h, m] = t.split(':').map(Number);
+ return h * 60 + m;
+ }
 
-    async function loginStudent() {
-        const input = document.getElementById('student-name-input').value.trim();
-        const errDiv = document.getElementById('login-error');
-        if (!input) {
-            errDiv.innerText = 'נא להזין שם מלא';
-            errDiv.style.display = 'block';
-            return;
-        }
+ async function loginStudent() {
+ const input = document.getElementById('student-name-input').value.trim();
+ const errDiv = document.getElementById('login-error');
+ if (!input) {
+ errDiv.innerText = 'נא להזין שם מלא';
+ errDiv.style.display = 'block';
+ return;
+ }
 
-        currentStudentName = input;
-        const success = await initCalendar();
+ currentStudentName = input;
+ const success = await initCalendar();
 
-        if (success) {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('calendar-section').style.display = 'block';
-        } else {
-            errDiv.innerText = 'השם שהוזן לא נמצא במערכת. פנה למנהל להוספה.';
-            errDiv.style.display = 'block';
-        }
-    }
+ if (success) {
+ document.getElementById('login-section').style.display = 'none';
+ document.getElementById('calendar-section').style.display = 'block';
+ } else {
+ errDiv.innerText = 'השם שהוזן לא נמצא במערכת. פנה למנהל להוספה.';
+ errDiv.style.display = 'block';
+ }
+ }
 
-    async function initCalendar() {
-        try {
-            const res = await fetch(`/api/slots?studentName=${encodeURIComponent(currentStudentName)}`);
-            const data = await res.json();
+ async function initCalendar() {
+ try {
+ const res = await fetch(`/api/slots?studentName=${encodeURIComponent(currentStudentName)}`);
+ const data = await res.json();
 
-            if (!data.studentData) return false;
+ if (!data.studentData) return false;
 
-            studentData = data.studentData;
-            globalAppointments = data.appointments;
-            globalDays = data.days;
-            fixedSlots = data.fixedSlots;
-            allGlobalBlocked = data.allGlobalBlocked || [];
-            isStudentAllowedToBook = data.isStudentAllowedToBook;
+ studentData = data.studentData;
+ globalAppointments = data.appointments;
+ globalDays = data.days;
+ fixedSlots = data.fixedSlots;
+ allGlobalBlocked = data.allGlobalBlocked || [];
+ isStudentAllowedToBook = data.isStudentAllowedToBook;
 
-            document.getElementById('welcome-msg').innerText = `שלום ${studentData.name} | מכסה שבועית: ${studentData.effectiveQuota} | שיעורים שנקבעו: ${studentData.currentBookings} | נותרו לקביעה: ${studentData.remainingQuota}`;
+ document.getElementById('welcome-msg').innerText = `שלום ${studentData.name} | מכסה שבועית: ${studentData.effectiveQuota} | שיעורים שנקבעו: ${studentData.currentBookings} | נותרו לקביעה: ${studentData.remainingQuota}`;
 
-            const banner = document.getElementById('status-banner');
-            const submitBtn = document.getElementById('submit-btn');
+ const banner = document.getElementById('status-banner');
+ const submitBtn = document.getElementById('submit-btn');
 
-            if (!isStudentAllowedToBook) {
-                banner.className = 'banner-closed';
-                banner.innerText = '🔒 ההרשמה סגורה עבורך כרגע כפי שהוגדר ע"י המנהל.';
-                banner.style.display = 'block';
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-            } else if (studentData.remainingQuota === 0) {
-                banner.className = 'banner-info';
-                banner.innerText = 'קבעת את כל השיעורים לשבוע זה!';
-                banner.style.display = 'block';
-                submitBtn.disabled = true;
-            } else {
-                banner.style.display = 'none';
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-            }
+ if (!isStudentAllowedToBook) {
+ banner.className = 'banner-closed';
+ banner.innerText = '🔒 ההרשמה סגורה עבורך כרגע כפי שהוגדר ע"י המנהל.';
+ banner.style.display = 'block';
+ submitBtn.disabled = true;
+ submitBtn.style.opacity = '0.5';
+ } else if (studentData.remainingQuota === 0) {
+ banner.className = 'banner-info';
+ banner.innerText = 'קבעת את כל השיעורים לשבוע זה!';
+ banner.style.display = 'block';
+ submitBtn.disabled = true;
+ } else {
+ banner.style.display = 'none';
+ submitBtn.disabled = false;
+ submitBtn.style.opacity = '1';
+ }
 
-            globalDays.forEach(d => {
-                const hEl = document.getElementById(`h-${d.index}`);
-                if (hEl) hEl.innerText = `${d.name}\n(${d.date})`;
-            });
+ globalDays.forEach(d => {
+ const hEl = document.getElementById(`h-${d.index}`);
+ if (hEl) hEl.innerText = `${d.name}\n(${d.date})`;
+ });
 
-            const timeCol = document.getElementById('fixed-time-column');
-            timeCol.innerHTML = '';
-            fixedSlots.forEach(s => {
-                const div = document.createElement('div');
-                div.className = 'time-cell';
-                div.innerText = `${s.start}-${s.end}`;
-                timeCol.appendChild(div);
-            });
+ const timeCol = document.getElementById('fixed-time-column');
+ timeCol.innerHTML = '';
+ fixedSlots.forEach(s => {
+ const div = document.createElement('div');
+ div.className = 'time-cell';
+ div.innerText = `${s.start}-${s.end}`;
+ timeCol.appendChild(div);
+ });
 
-            renderGrid();
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
-    }
+ renderGrid();
+ return true;
+ } catch (err) {
+ console.error(err);
+ return false;
+ }
+ }
 
-    function renderGrid() {
-        const defStartM = timeToMins(studentData.defaultTimeRange?.start || "08:00");
-        const defEndM = timeToMins(studentData.defaultTimeRange?.end || "21:00");
+ function renderGrid() {
+ const defStartM = timeToMins(studentData.defaultTimeRange?.start || "08:00");
+ const defEndM = timeToMins(studentData.defaultTimeRange?.end || "21:00");
 
-        for (let day = 0; day < 5; day++) {
-            const col = document.getElementById(`col-${day}`);
-            if (!col) continue;
-            col.innerHTML = '';
+ for (let day = 0; day < 5; day++) {
+ const col = document.getElementById(`col-${day}`);
+ if (!col) continue;
+ col.innerHTML = '';
 
-            fixedSlots.forEach((slot) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'slot-btn';
+ fixedSlots.forEach((slot) => {
+ const btn = document.createElement('button');
+ btn.type = 'button';
+ btn.className = 'slot-btn';
 
-                const slotStartM = timeToMins(slot.start);
-                const slotEndM = timeToMins(slot.end);
+ const slotStartM = timeToMins(slot.start);
+ const slotEndM = timeToMins(slot.end);
 
-                let isAllowed = (slotStartM >= defStartM && slotEndM <= defEndM);
+ let isAllowed = (slotStartM >= defStartM && slotEndM <= defEndM);
 
-                if (studentData.allowedCustomRanges && Array.isArray(studentData.allowedCustomRanges)) {
-                    const isCustomRangeMatch = studentData.allowedCustomRanges.some(r => {
-                        if (parseInt(r.dayIndex) !== day) return false;
-                        const cStartM = timeToMins(r.start);
-                        const cEndM = timeToMins(r.end);
-                        return (slotStartM >= cStartM && slotStartM < cEndM);
-                    });
+ if (studentData.allowedCustomRanges && Array.isArray(studentData.allowedCustomRanges)) {
+ const isCustomRangeMatch = studentData.allowedCustomRanges.some(r => {
+ if (parseInt(r.dayIndex) !== day) return false;
+ const cStartM = timeToMins(r.start);
+ const cEndM = timeToMins(r.end);
+ return (slotStartM >= cStartM && slotStartM < cEndM);
+ });
 
-                    if (isCustomRangeMatch) {
-                        isAllowed = true;
-                    }
-                }
+ if (isCustomRangeMatch) {
+ isAllowed = true;
+ }
+ }
 
-                const slotKey = `${day}_${slot.start}`;
-                const isGloballyBlocked = allGlobalBlocked.includes(slotKey);
+ const slotKey = `${day}_${slot.start}`;
+ const isGloballyBlocked = allGlobalBlocked.includes(slotKey);
+ const isStudentBlocked = (studentData.blockedSlots || []).includes(slotKey);
 
-                if (studentData.blockedSlots.includes(slotKey) || isGloballyBlocked || !isStudentAllowedToBook || !isAllowed) {
-                    btn.disabled = true;
-                    btn.innerText = ''; 
-                } else {
-                    btn.innerText = `${slot.start}`;
-                }
+ // רשימת סלוטים מותרים אישית לתלמיד (ברירת מחדל / דריסת שבוע). ריק = כל הסלוטים מותרים.
+ const allowList = studentData.allowedSlots || [];
+ const slotRangeKey = `${slot.start} - ${slot.end}`;
+ const isInAllowList = (allowList.length === 0) ? true : allowList.includes(slotRangeKey);
 
-                btn.addEventListener('click', () => toggleSlotSelection(day, slot));
-                col.appendChild(btn);
-            });
+ // סלוט פנוי לקביעה רק אם: ההרשמה פתוחה לתלמיד, מותר לפי מנגנון ההיתר, ולא חסום.
+ // מנגנון ההיתר: אם קיימת רשימת סלוטים מפורשת (allowed_slots / דריסת שבוע) — היא הסמכות הבלעדית
+ // וגוברת על חלון השעות הגס (defaultTimeRange). אחרת נופלים לחלון השעות ברירת־המחדל.
+ const passesAllow = (allowList.length === 0) ? isAllowed : isInAllowList;
+ const available = isStudentAllowedToBook && passesAllow && !isGloballyBlocked && !isStudentBlocked;
 
-            globalAppointments.filter(a => a.day_index === day).forEach(app => {
-                const startM = timeToMins(app.start_time);
-                const endM = timeToMins(app.end_time);
-                const slotIndex = fixedSlots.findIndex(s => s.start === app.start_time);
+ if (!available) {
+ btn.disabled = true;
+ btn.innerText = 'לא זמין';
+ } else {
+ btn.innerText = `${slot.start}`;
+ }
 
-                const isMine = app.booked_by_name === currentStudentName;
-                const block = document.createElement('div');
-                
-                if (isMine) {
-                    block.className = 'block-overlay block-fixed';
-                    block.innerText = `השיעור הקבוע שלך (${app.start_time})`;
-                } else {
-                    block.className = 'block-overlay block-booked';
-                    block.innerText = ''; 
-                }
+ btn.addEventListener('click', () => toggleSlotSelection(day, slot));
+ col.appendChild(btn);
+ });
 
-                if (slotIndex !== -1) {
-                    block.style.top = `${slotIndex * ROW_HEIGHT}px`;
-                    block.style.height = `${ROW_HEIGHT}px`;
-                } else {
-                    const topPos = ((startM - GRID_START_MINS) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
-                    const height = ((endM - startM) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
-                    block.style.top = `${Math.max(0, topPos)}px`;
-                    block.style.height = `${Math.max(25, height)}px`;
-                }
+ globalAppointments.filter(a => a.day_index === day).forEach(app => {
+ const startM = timeToMins(app.start_time);
+ const endM = timeToMins(app.end_time);
+ const slotIndex = fixedSlots.findIndex(s => s.start === app.start_time);
 
-                col.appendChild(block);
-            });
+ const isMine = app.booked_by_name === currentStudentName;
+ const block = document.createElement('div');
+ 
+ if (isMine) {
+ block.className = 'block-overlay block-fixed';
+ block.innerText = `השיעור הקבוע שלך (${app.start_time})`;
+ } else {
+ block.className = 'block-overlay block-booked';
+ block.innerText = 'לא זמין';
+ }
 
-            selectedSlots.filter(s => s.dayIndex === day).forEach(slot => {
-                const slotIndex = fixedSlots.findIndex(s => s.start === slot.startTime);
-                if (slotIndex !== -1) {
-                    const block = document.createElement('div');
-                    block.className = 'block-overlay block-selected';
-                    block.style.top = `${slotIndex * ROW_HEIGHT}px`;
-                    block.style.height = `${ROW_HEIGHT}px`;
-                    block.innerText = `בבחירה (${slot.startTime})`;
-                    block.onclick = () => removeSelectedSlot(day, slot.startTime);
-                    col.appendChild(block);
-                }
-            });
-        }
-    }
+ if (slotIndex !== -1) {
+ block.style.top = `${slotIndex * ROW_HEIGHT}px`;
+ block.style.height = `${ROW_HEIGHT}px`;
+ } else {
+ const topPos = ((startM - GRID_START_MINS) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
+ const height = ((endM - startM) / TOTAL_GRID_MINS) * (10 * ROW_HEIGHT);
+ block.style.top = `${Math.max(0, topPos)}px`;
+ block.style.height = `${Math.max(25, height)}px`;
+ }
 
-    function toggleSlotSelection(dayIndex, slot) {
-        if (studentData.remainingQuota - selectedSlots.length <= 0) {
-            alert(`מכסת השיעורים שלך אינה מאפשרת לבחור שיעורים נוספים (נותרו: ${studentData.remainingQuota}).`);
-            return;
-        }
+ col.appendChild(block);
+ });
 
-        const existingIndex = selectedSlots.findIndex(s => s.dayIndex === dayIndex && s.startTime === slot.start);
-        if (existingIndex !== -1) {
-            selectedSlots.splice(existingIndex, 1);
-        } else {
-            selectedSlots.push({
-                dayIndex,
-                startTime: slot.start,
-                endTime: slot.end,
-                dayName: globalDays[dayIndex].name
-            });
-        }
+ selectedSlots.filter(s => s.dayIndex === day).forEach(slot => {
+ const slotIndex = fixedSlots.findIndex(s => s.start === slot.startTime);
+ if (slotIndex !== -1) {
+ const block = document.createElement('div');
+ block.className = 'block-overlay block-selected';
+ block.style.top = `${slotIndex * ROW_HEIGHT}px`;
+ block.style.height = `${ROW_HEIGHT}px`;
+ block.innerText = `בבחירה (${slot.startTime})`;
+ block.onclick = () => removeSelectedSlot(day, slot.startTime);
+ col.appendChild(block);
+ }
+ });
+ }
+ }
 
-        renderSelectedList();
-        renderGrid();
-    }
+ function toggleSlotSelection(dayIndex, slot) {
+ if (studentData.remainingQuota - selectedSlots.length <= 0) {
+ alert(`מכסת השיעורים שלך אינה מאפשרת לבחור שיעורים נוספים (נותרו: ${studentData.remainingQuota}).`);
+ return;
+ }
 
-    function removeSelectedSlot(dayIndex, startTime) {
-        selectedSlots = selectedSlots.filter(s => !(s.dayIndex === dayIndex && s.startTime === startTime));
-        renderSelectedList();
-        renderGrid();
-    }
+ const existingIndex = selectedSlots.findIndex(s => s.dayIndex === dayIndex && s.startTime === slot.start);
+ if (existingIndex !== -1) {
+ selectedSlots.splice(existingIndex, 1);
+ } else {
+ selectedSlots.push({
+ dayIndex,
+ startTime: slot.start,
+ endTime: slot.end,
+ dayName: globalDays[dayIndex].name
+ });
+ }
 
-    function renderSelectedList() {
-        const listDiv = document.getElementById('selected-list');
-        listDiv.innerHTML = '';
-        if (selectedSlots.length === 0) {
-            listDiv.innerHTML = '<span style="color: #888;">טרם נבחרו שיעורים נוספים ביומן</span>';
-            return;
-        }
+ renderSelectedList();
+ renderGrid();
+ }
 
-        selectedSlots.forEach((slot) => {
-            const badge = document.createElement('div');
-            badge.className = 'selected-badge';
-            badge.innerHTML = `${slot.dayName} ${slot.startTime}-${slot.endTime} <span class="remove-badge" onclick="removeSelectedSlot(${slot.dayIndex}, '${slot.startTime}')">✕</span>`;
-            listDiv.appendChild(badge);
-        });
-    }
+ function removeSelectedSlot(dayIndex, startTime) {
+ selectedSlots = selectedSlots.filter(s => !(s.dayIndex === dayIndex && s.startTime === startTime));
+ renderSelectedList();
+ renderGrid();
+ }
 
-    function openConfirmModal() {
-        if (selectedSlots.length === 0) {
-            alert('נא לבחור לפחות שיעור אחד ביומן');
-            return;
-        }
+ function renderSelectedList() {
+ const listDiv = document.getElementById('selected-list');
+ listDiv.innerHTML = '';
+ if (selectedSlots.length === 0) {
+ listDiv.innerHTML = '<span style="color: #888;">טרם נבחרו שיעורים נוספים ביומן</span>';
+ return;
+ }
 
-        let html = `<strong>תלמיד:</strong> ${studentData.name}<br><br><strong>השיעורים שנבחרו:</strong><br>`;
-        selectedSlots.forEach(s => {
-            html += `• ${s.dayName} בשעה ${s.startTime}-${s.endTime}<br>`;
-        });
+ selectedSlots.forEach((slot) => {
+ const badge = document.createElement('div');
+ badge.className = 'selected-badge';
+ badge.innerHTML = `${slot.dayName} ${slot.startTime}-${slot.endTime} <span class="remove-badge" onclick="removeSelectedSlot(${slot.dayIndex}, '${slot.startTime}')">✕</span>`;
+ listDiv.appendChild(badge);
+ });
+ }
 
-        document.getElementById('confirm-details').innerHTML = html;
-        document.getElementById('confirm-modal').style.display = 'flex';
-    }
+ function openConfirmModal() {
+ if (selectedSlots.length === 0) {
+ alert('נא לבחור לפחות שיעור אחד ביומן');
+ return;
+ }
 
-    function closeConfirmModal() {
-        document.getElementById('confirm-modal').style.display = 'none';
-    }
+ let html = `<strong>תלמיד:</strong> ${studentData.name}<br><br><strong>השיעורים שנבחרו:</strong><br>`;
+ selectedSlots.forEach(s => {
+ html += `• ${s.dayName} בשעה ${s.startTime}-${s.endTime}<br>`;
+ });
 
-    async function submitBookingFinal() {
-        closeConfirmModal();
-        const msgDiv = document.getElementById('message');
+ document.getElementById('confirm-details').innerHTML = html;
+ document.getElementById('confirm-modal').style.display = 'flex';
+ }
 
-        try {
-            const res = await fetch('/api/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    studentName: currentStudentName,
-                    slots: selectedSlots
-                })
-            });
+ function closeConfirmModal() {
+ document.getElementById('confirm-modal').style.display = 'none';
+ }
 
-            const result = await res.json();
-            if (res.ok) {
-                msgDiv.className = 'success';
-                msgDiv.innerText = result.message;
-                msgDiv.style.display = 'block';
-                selectedSlots = [];
-                renderSelectedList();
-                await initCalendar();
-            } else {
-                msgDiv.className = 'error';
-                msgDiv.innerText = result.error;
-                msgDiv.style.display = 'block';
-            }
-        } catch (err) {
-            msgDiv.className = 'error';
-            msgDiv.innerText = 'שגיאה בתקשורת עם השרת';
-            msgDiv.style.display = 'block';
-        }
-    }
+ async function submitBookingFinal() {
+ closeConfirmModal();
+ const msgDiv = document.getElementById('message');
+
+ try {
+ const res = await fetch('/api/book', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ studentName: currentStudentName,
+ slots: selectedSlots
+ })
+ });
+
+ const result = await res.json();
+ if (res.ok) {
+ msgDiv.className = 'success';
+ msgDiv.innerText = result.message;
+ msgDiv.style.display = 'block';
+ selectedSlots = [];
+ renderSelectedList();
+ await initCalendar();
+ } else {
+ msgDiv.className = 'error';
+ msgDiv.innerText = result.error;
+ msgDiv.style.display = 'block';
+ }
+ } catch (err) {
+ msgDiv.className = 'error';
+ msgDiv.innerText = 'שגיאה בתקשורת עם השרת';
+ msgDiv.style.display = 'block';
+ }
+ }
 </script>
 </body>
 </html>

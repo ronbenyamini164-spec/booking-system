@@ -39,6 +39,8 @@
  .time-label { height: 48px; background: #07090e; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--accent-cyan); }
  .calendar-day-col { display: flex; flex-direction: column; gap: 8px; }
  .calendar-day-header { height: 23px; font-weight: 800; font-size: 11px; color: var(--accent-cyan); text-align: center; border-bottom: 1px solid var(--card-border); }
+ /* יישור תאי היום עם עמודת השעות — אותו רווח 8px בדיוק */
+ .calendar-day-col > div[id^="day-col-"] { display: flex; flex-direction: column; gap: 8px; }
  .slot-item { height: 48px; background: #111625; border: 1px solid var(--card-border); border-radius: 8px; padding: 6px; font-size: 10px; text-align: center; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; }
  .slot-booked { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.25); color: var(--accent-green); font-weight: bold; }
  .slot-blocked { border-color: var(--accent-red); background: rgba(244, 63, 94, 0.35); color: var(--accent-red); font-weight: bold; }
@@ -89,6 +91,35 @@
  <button class="btn-action btn-red" onclick="openResetWeekModal()">🔄 Reset Week & Dates</button>
  </div>
  </h2>
+ <!-- גיבוי ושחזור נתונים -->
+ <div style="margin-bottom:14px; padding:12px; border:1px solid var(--card-border); border-radius:12px;">
+ <div style="font-size:13px; font-weight:800; color:var(--accent-green); margin-bottom:8px;">💾 Backup & Restore</div>
+ <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+ <button class="btn-action btn-green" style="height:40px;" onclick="downloadBackup()">⬇️ Download Full Backup (JSON)</button>
+ <label class="btn-action btn-del" style="height:40px; display:flex; align-items:center; cursor:pointer;">⬆️ Restore From Backup<input type="file" accept="application/json" style="display:none;" onchange="restoreBackup(this)"></label>
+ </div>
+ <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">הורדה שומרת עותק של כל הנתונים למחשב שלך. שחזור מוחק את הקיים ומחליף בגיבוי — להשתמש בזהירות.</div>
+ </div>
+
+ <!-- (3) מצב פתיחת האתר לתלמידים: פתוח לכולם / לתלמידים מסוימים / צפייה בלבד -->
+ <div style="margin-bottom:14px; padding:12px; border:1px solid var(--card-border); border-radius:12px;">
+ <div style="font-size:13px; font-weight:800; color:var(--accent-cyan); margin-bottom:8px;">🌐 Student Booking Access</div>
+ <div class="form-grid">
+ <div class="form-group"><label>Mode</label>
+ <select id="booking-mode" onchange="onBookingModeChange()">
+ <option value="all">🟢 Open to all students</option>
+ <option value="specific">🟡 Open to specific students</option>
+ <option value="none">🔴 View only (closed)</option>
+ </select></div>
+ <div class="form-group" style="justify-content:flex-end;"><button class="btn-action btn-green" style="height:40px;" onclick="saveBookingStatus()">💾 Save Access</button></div>
+ </div>
+ <div id="booking-students-wrap" style="display:none; margin-top:8px;">
+ <label style="font-size:11px; font-weight:800; color:var(--text-muted);">Students allowed to book (others view-only)</label>
+ <div id="booking-students" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:4px; margin-top:6px; max-height:160px; overflow-y:auto;"></div>
+ </div>
+ <div id="booking-status-msg" style="font-size:11px; color:var(--text-muted); margin-top:6px;"></div>
+ </div>
+
  <h3 style="font-size:13px; margin-bottom:10px; color:var(--accent-red);">🚫 Block Time Slot Dropdown</h3>
  <div class="form-grid">
  <div class="form-group">
@@ -98,8 +129,28 @@
  </select>
  </div>
  <div class="form-group"><label>Select Fixed Slot</label><select id="block-slot-select"></select></div>
+ <div class="form-group"><label>Block Type</label><select id="block-type"><option value="once">חד-פעמי (השבוע)</option><option value="recurring">קבוע (כל שבוע עד ביטול)</option></select></div>
  <div class="form-group" style="justify-content:flex-end;"><button class="btn-action btn-red" style="height:40px;" onclick="saveSlotBlock()">🚫 Save Block</button></div>
  </div>
+ <!-- (6) לוח מודעות 7 ימים: תשלומים והוצאות צפויים -->
+ <div id="upcoming-board" style="margin:14px 0; padding:12px; border:1px solid var(--card-border); border-radius:12px; background:rgba(6,182,212,0.06);">
+ <div style="font-size:13px; font-weight:800; color:var(--accent-cyan); margin-bottom:8px;">🔔 7-Day Notice Board — תשלומים והוצאות צפויים</div>
+ <div id="upcoming-list" style="font-size:12px; color:var(--text-muted);">Loading…</div>
+ </div>
+
+ <!-- (7) הגדרות תלמיד בלוח: בחירה + דריסה שבועית -->
+ <div style="margin:14px 0; padding:12px; border:1px solid var(--card-border); border-radius:12px;">
+ <div style="font-size:13px; font-weight:800; color:var(--accent-cyan); margin-bottom:8px;">⚙️ Student Settings (weekly override)</div>
+ <div class="form-grid">
+ <div class="form-group"><label>Student</label><select id="ws-student" onchange="loadWeeklyOverride()"></select></div>
+ <div class="form-group"><label>Weekly Quota Override</label><input type="number" id="ws-quota" placeholder="e.g. 2"></div>
+ <div class="form-group" style="justify-content:flex-end;"><button class="btn-action btn-green" style="height:40px;" onclick="saveWeeklyOverride()">💾 Save Override</button></div>
+ </div>
+ <div style="margin-top:10px;"><label style="font-size:11px; font-weight:800; color:var(--text-muted);">Allowed Slots This Week (אם ריק — נופל לברירת המחדל של התלמיד)</label>
+ <div id="ws-slots" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:4px; margin-top:6px;"></div></div>
+ <div id="ws-status" style="font-size:11px; color:var(--text-muted); margin-top:6px;"></div>
+ </div>
+
  <div class="calendar-wrapper">
  <div class="calendar-time-col" id="time-sidebar"></div>
  <div class="calendar-day-col"><div class="calendar-day-header" id="day-header-0">Sunday</div><div id="day-col-0"></div></div>
@@ -115,7 +166,7 @@
  <h2><span>🎓 Active Students</span><button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button></h2>
  <div class="table-container">
  <table>
- <thead><tr><th>Name</th><th>Course</th><th>Weekly Quota</th><th>Amount / Owed</th><th>Actions</th></tr></thead>
+ <thead><tr><th>Name</th><th>Course</th><th>Progress</th><th>Validity</th><th>Amount / Owed</th><th>Actions</th></tr></thead>
  <tbody id="students-table-body"></tbody>
  </table>
  </div>
@@ -133,9 +184,14 @@
  <!-- TAB 3: INVOICES -->
  <div id="invoices-tab" class="tab-content card" style="display:none;">
  <h2><span>💵 Invoices & Revenue</span><button class="btn-action btn-green" onclick="openInvoiceModal()">➕ New Invoice</button></h2>
+ <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
+ <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="inv-from" onchange="renderInvoices()"></div>
+ <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="inv-to" onchange="renderInvoices()"></div>
+ <button class="btn-action btn-del" onclick="document.getElementById('inv-from').value='';document.getElementById('inv-to').value='';renderInvoices()">Clear</button>
+ </div>
  <div class="table-container">
  <table>
- <thead><tr><th>Invoice #</th><th>Student</th><th>Date</th><th>Method</th><th>Amount</th></tr></thead>
+ <thead><tr><th>Invoice #</th><th>Student</th><th>Date</th><th>Period</th><th>Method</th><th>Reference</th><th>Transaction ID</th><th>Pay #</th><th>Notes</th><th>Amount</th><th>Actions</th></tr></thead>
  <tbody id="invoices-table-body"></tbody>
  </table>
  </div>
@@ -143,10 +199,15 @@
 
  <!-- TAB 4: EXPENSES -->
  <div id="expenses-tab" class="tab-content card" style="display:none;">
- <h2><span>💸 Business Expenses</span><button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button></h2>
+ <h2><span>💸 Business Expenses</span><div style="display:flex; gap:8px;"><button class="btn-action btn-blue" onclick="openRecurringModal()">🔁 Recurring</button><button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button></div></h2>
+ <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
+ <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="exp-from" onchange="renderExpenses()"></div>
+ <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="exp-to" onchange="renderExpenses()"></div>
+ <button class="btn-action btn-del" onclick="document.getElementById('exp-from').value='';document.getElementById('exp-to').value='';renderExpenses()">Clear</button>
+ </div>
  <div class="table-container">
  <table>
- <thead><tr><th>Date</th><th>Vendor / Description</th><th>Category</th><th>Amount (₪)</th></tr></thead>
+ <thead><tr><th>Date</th><th>Vendor / Description</th><th>Category</th><th>Amount (₪)</th><th>Orig</th><th>Method</th><th>Invoice?</th><th>Link</th><th>Notes</th><th>Actions</th></tr></thead>
  <tbody id="expenses-table-body"></tbody>
  </table>
  </div>
@@ -155,6 +216,11 @@
  <!-- TAB 5: STATS -->
  <div id="stats-tab" class="tab-content card" style="display:none;">
  <h2>📊 Financial Overview & Business Results</h2>
+ <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
+ <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="stat-from" onchange="applyStatsFilter()"></div>
+ <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="stat-to" onchange="applyStatsFilter()"></div>
+ <button class="btn-action btn-del" onclick="document.getElementById('stat-from').value='';document.getElementById('stat-to').value='';applyStatsFilter()">Clear (All Time)</button>
+ </div>
  <div class="stats-grid">
  <div class="stat-box"><h3>Total Income</h3><p id="st-total-income" style="color:var(--accent-green);">₪0.00</p></div>
  <div class="stat-box"><h3>Total Expenses</h3><p id="st-total-expenses" style="color:var(--accent-red);">₪0.00</p></div>
@@ -213,10 +279,22 @@
  </div>
  </div>
  <div class="form-group" style="margin-bottom:10px;"><label>Weekly Quota (Lessons / Week)</label><input type="number" id="m_student_quota" value="2"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Allowed Slots (default — אם ריק, כל הסלוטים מותרים)</label><div id="m_allowed_slots" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; max-height:160px; overflow-y:auto; padding:6px; border:1px solid var(--card-border); border-radius:10px; background:#07090e;"></div></div>
+ <div class="form-group" style="margin-bottom:10px;">
+ <label>שיעורים קבועים (יום + סלוט — מתווספים אוטומטית ללוח ב-Reset Week)</label>
+ <div style="display:flex; gap:6px; margin-bottom:6px;">
+ <select id="m_fl_day" style="flex:1;"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option></select>
+ <select id="m_fl_slot" style="flex:1;"></select>
+ <button class="btn-action btn-blue" type="button" onclick="addFixedLesson()">➕ הוסף</button>
+ </div>
+ <div id="m_fixed_lessons_list" style="display:flex; flex-direction:column; gap:4px; max-height:140px; overflow-y:auto; padding:6px; border:1px solid var(--card-border); border-radius:10px; background:#07090e;"></div>
+ </div>
  <div class="form-group" style="margin-bottom:10px;"><label>Total Course Amount (₪)</label><input type="number" id="m_student_amount" value="4900"></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Total Lessons in Process</label><input type="number" id="m_student_total_lessons" value="16"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Lessons Completed</label><input type="number" id="m_student_completed" value="0"></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Process Duration (Months)</label><input type="number" id="m_student_duration" value="4"></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Process Start Date</label><input type="date" id="m_student_start_date"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Validity Expiration (manual override — optional)</label><input type="date" id="m_student_validity"></div>
  <div class="form-group" style="margin-bottom:15px;">
  <label>Move to Past Students Archive?</label>
  <select id="m_student_is_past"><option value="false">No (Active Student)</option><option value="true">Yes (Past Archive)</option></select>
@@ -229,7 +307,7 @@
 <!-- Invoice Modal -->
 <div class="modal-overlay" id="invoice-modal" style="display:none;">
  <div class="modal-content" style="text-align:left;">
- <h3 style="margin-bottom:15px;">New Invoice / Income</h3>
+ <h3 id="invoice-modal-title" style="margin-bottom:15px;">New Invoice / Income</h3>
  <div class="form-group" style="margin-bottom:10px;"><label>Invoice # *</label><input type="text" id="i_number" placeholder="98/300001"></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Student Name *</label><select id="i_student_select"></select></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Invoice Date *</label><input type="date" id="i_date"></div>
@@ -241,7 +319,13 @@
  <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('payment_method')">🗑️</button>
  </div>
  </div>
- <div class="form-group" style="margin-bottom:15px;"><label>Total Amount (₪) *</label><input type="number" id="i_amount"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Period Covered</label><input type="text" id="i_period" placeholder="Partial / Full"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Reference Number</label><input type="text" id="i_reference"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Transaction ID</label><input type="text" id="i_transaction"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Payment # (installment)</label><input type="number" id="i_payment_num"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Notes</label><input type="text" id="i_notes"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Total Amount (₪) *</label><input type="number" id="i_amount"></div>
+ <div class="form-group" style="margin-bottom:15px;"><label>Is Refund?</label><select id="i_is_refund"><option value="false">No — Payment</option><option value="true">Yes — Refund (saved as negative)</option></select></div>
  <button class="btn-action btn-green" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveInvoice()">Save Invoice</button>
  <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('invoice-modal')">Cancel</button>
  </div>
@@ -250,7 +334,7 @@
 <!-- Expense Modal -->
 <div class="modal-overlay" id="expense-modal" style="display:none;">
  <div class="modal-content" style="text-align:left;">
- <h3 style="margin-bottom:15px;">New Expense</h3>
+ <h3 id="expense-modal-title" style="margin-bottom:15px;">New Expense</h3>
  <div class="form-group" style="margin-bottom:10px;"><label>Date *</label><input type="date" id="e_date"></div>
  <div class="form-group" style="margin-bottom:10px;"><label>Vendor / Description *</label><input type="text" id="e_name"></div>
  <div class="form-group" style="margin-bottom:10px;">
@@ -261,9 +345,59 @@
  <button class="btn-action btn-del" type="button" onclick="deleteDynamicCategory('expense_category')">🗑️</button>
  </div>
  </div>
- <div class="form-group" style="margin-bottom:15px;"><label>Amount (₪) *</label><input type="number" id="e_amount"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Currency</label><select id="e_currency" onchange="updateExpensePreview()"><option value="ILS">₪ ILS (שקל)</option><option value="USD">$ USD (דולר)</option></select></div>
+ <div class="form-group" style="margin-bottom:6px;"><label>Amount *</label><input type="number" id="e_amount" oninput="updateExpensePreview()"></div>
+ <div id="e_fx_preview" style="font-size:12px; color:var(--accent-cyan); margin-bottom:12px; min-height:14px;"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Payment Method</label><input type="text" id="e_payment_method" placeholder="Card (8432) / Bank Transfer"></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>Invoice Received?</label><select id="e_invoice_received"><option value="">—</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+ <div class="form-group" style="margin-bottom:10px;"><label>File Link</label><input type="text" id="e_file_link" placeholder="https://..."></div>
+ <div class="form-group" style="margin-bottom:15px;"><label>Notes</label><input type="text" id="e_notes"></div>
  <button class="btn-action btn-red" type="button" style="width:100%; padding:12px; margin-bottom:8px;" onclick="saveExpense()">Save Expense</button>
  <button class="btn-action btn-del" type="button" style="width:100%; padding:10px;" onclick="closeModal('expense-modal')">Cancel</button>
+ </div>
+</div>
+
+<!-- Payments / Installments Modal -->
+<div class="modal-overlay" id="recurring-modal" style="display:none;">
+ <div class="modal-content" style="text-align:left; max-width:620px;">
+ <h3 style="margin-bottom:6px;">🔁 Recurring Expenses</h3>
+ <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">הוצאות שמוזרקות אוטומטית (שבועי / חודשי / שנתי) עד שתבוטלנה.</p>
+ <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+ <div class="form-group"><label>Vendor / Description *</label><input type="text" id="r_name"></div>
+ <div class="form-group"><label>Category</label><input type="text" id="r_category"></div>
+ <div class="form-group"><label>Amount *</label><input type="number" id="r_amount"></div>
+ <div class="form-group"><label>Currency</label><select id="r_currency"><option value="ILS">₪ ILS</option><option value="USD">$ USD</option></select></div>
+ <div class="form-group"><label>Payment Method</label><input type="text" id="r_method"></div>
+ <div class="form-group"><label>Frequency</label><select id="r_frequency"><option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option></select></div>
+ <div class="form-group"><label>Start Date *</label><input type="date" id="r_start"></div>
+ </div>
+ <button class="btn-action btn-green" style="width:100%; padding:12px; margin:10px 0;" onclick="saveRecurring()">➕ Add Recurring Expense</button>
+ <div class="table-container" style="max-height:260px; overflow-y:auto;">
+ <table style="min-width:480px;"><thead><tr><th>Vendor</th><th>Freq</th><th>Amount</th><th>Next Run</th><th>Status</th><th></th></tr></thead>
+ <tbody id="recurring-table-body"></tbody></table>
+ </div>
+ <button class="btn-action btn-del" style="width:100%; padding:10px; margin-top:12px;" onclick="closeModal('recurring-modal')">Close</button>
+ </div>
+</div>
+
+<div class="modal-overlay" id="payments-modal" style="display:none;">
+ <div class="modal-content" style="text-align:left; max-width:580px;">
+ <h3 style="margin-bottom:6px;">💳 Payment Plan — <span id="payments-student-name" style="color:var(--accent-cyan);"></span></h3>
+ <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Generate a monthly installment plan, or adjust each payment manually.</p>
+ <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+ <div class="form-group"><label>Total Amount (₪)</label><input type="number" id="pay-total"></div>
+ <div class="form-group"><label># Installments</label><input type="number" id="pay-count" value="6"></div>
+ <div class="form-group"><label>First Due Date</label><input type="date" id="pay-first-date"></div>
+ </div>
+ <button class="btn-action btn-blue" style="width:100%; padding:10px; margin-bottom:14px;" onclick="generatePlan()">⚙️ Generate / Regenerate Plan</button>
+ <div class="table-container" style="max-height:280px; overflow-y:auto;">
+ <table style="min-width:480px;">
+ <thead><tr><th>#</th><th>Due Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+ <tbody id="payments-table-body"></tbody>
+ </table>
+ </div>
+ <div id="payments-summary" style="font-size:12px; margin-top:12px; color:var(--text-muted);"></div>
+ <button class="btn-action btn-del" style="width:100%; padding:10px; margin-top:12px;" onclick="closeModal('payments-modal')">Close</button>
  </div>
 </div>
 
@@ -274,6 +408,9 @@
  let allExpenses = [];
  let allCategories = [];
  let selectedBookingSlot = null;
+ let editingInvoiceId = null;
+ let editingExpenseId = null;
+ let currentPaymentsStudent = null;
 
  const fixedTimeSlots = [
  '08:00 - 09:00', '09:15 - 10:15', '10:30 - 11:30', '11:45 - 12:45', '13:00 - 14:00',
@@ -403,6 +540,8 @@
  const res = await apiFetch('/api/admin/students-full');
  const data = await res.json();
  allStudents = data.students || [];
+ populateWeeklyStudents();
+ loadBookingStatus();
  const tbody = document.getElementById('students-table-body');
  const pastTbody = document.getElementById('past-students-table-body');
  const invSelect = document.getElementById('i_student_select');
@@ -412,11 +551,36 @@
  invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`;
  const studentPayed = allInvoices.filter(i => i.student_name === s.name).reduce((sum, i) => sum + Number(i.amount_payed), 0);
  const owed = Math.max(0, Number(s.total_amount || 0) - studentPayed);
+ const total = Number(s.total_lessons || 0);
+ const done = Number(s.completed_lessons || 0);
+ const pct = total > 0 ? Math.round(done / total * 100) : 0;
+ const progressHtml = `<div style="font-size:11px; margin-bottom:3px;">${done}/${total} (${pct}%)</div><div style="height:6px; background:#07090e; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, pct)}%; background:var(--accent-cyan);"></div></div>`;
+ let validityHtml = '<span style="color:var(--text-muted);">-</span>';
+ if (s.validity_expiration_date) {
+ const dateStr = s.validity_expiration_date.substring(0, 10);
+ const exp = new Date(dateStr);
+ const today = new Date(); today.setHours(0, 0, 0, 0);
+ const expired = exp < today && done < total;
+ // (3) התקדמות תוקף: חלק הזמן שחלף מתוך חלון התוקף (מתאריך ההתחלה עד תאריך התפוגה)
+ let timeBar = '';
+ if (s.start_date) {
+ const start = new Date(s.start_date.substring(0, 10));
+ const span = exp - start;
+ if (span > 0) {
+ const tpct = Math.max(0, Math.round((today - start) / span * 100));
+ const tcolor = tpct >= 90 ? 'var(--accent-red)' : 'var(--accent-cyan)';
+ timeBar = `<div style="font-size:10px; margin:4px 0 2px;">⏳ ${tpct}% זמן</div><div style="height:5px; background:#07090e; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, tpct)}%; background:${tcolor};"></div></div>`;
+ }
+ }
+ validityHtml = (expired
+ ? `<span class="badge" style="background:var(--accent-red);">🔴 Expired</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`
+ : `<span class="badge badge-paid">🟢 Active</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`) + timeBar;
+ }
  if (s.is_past_student) {
  pastTbody.innerHTML += `<tr><td><strong>${s.name}</strong></td><td>${s.course_type || '-'}</td><td>₪${s.total_amount || 0}</td><td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td></tr>`;
  } else {
  totalOwed += owed;
- tbody.innerHTML += `<tr><td><strong>${s.name}</strong></td><td><span class="badge badge-paid">${s.course_type || 'Beg'}</span></td><td>${s.default_quota || 2} lessons/week</td><td>₪${s.total_amount || 0} (Owed: <strong>₪${owed}</strong>)</td><td><button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button></td></tr>`;
+ tbody.innerHTML += `<tr><td><strong>${s.name}</strong></td><td><span class="badge badge-paid">${s.course_type || 'Beg'}</span></td><td>${progressHtml}</td><td>${validityHtml}</td><td>₪${s.total_amount || 0} (Owed: <strong>₪${owed}</strong>)</td><td style="white-space:nowrap;"><button class="btn-action btn-green" onclick="completeLesson(${s.id})" title="Mark one lesson completed">✔️</button> <button class="btn-action btn-blue" onclick="openStudentModal(${s.id})">Edit</button> <button class="btn-action btn-del" onclick="openPaymentsModal(${s.id})">💳</button></td></tr>`;
  }
  });
  document.getElementById('st-total-owed').innerText = '₪' + totalOwed.toFixed(2);
@@ -433,16 +597,30 @@
  const res = await apiFetch('/api/admin/invoices');
  const data = await res.json();
  allInvoices = data.invoices || [];
+ renderInvoices();
+ applyStatsFilter();
+ } catch(e) {}
+ }
+
+ function inRange(dateStr, from, to) {
+ if (!dateStr) return (!from && !to);
+ const d = dateStr.substring(0,10);
+ if (from && d < from) return false;
+ if (to && d > to) return false;
+ return true;
+ }
+
+ function renderInvoices() {
+ const from = (document.getElementById('inv-from')||{}).value || '';
+ const to = (document.getElementById('inv-to')||{}).value || '';
  const tbody = document.getElementById('invoices-table-body');
  tbody.innerHTML = '';
- let totalInc = 0;
- allInvoices.forEach(i => {
- totalInc += Number(i.amount_payed || 0);
- tbody.innerHTML += `<tr><td><strong>${i.invoice_number}</strong></td><td>${i.student_name}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.payment_method}</td><td style="color:var(--accent-green); font-weight:bold;">₪${i.amount_payed}</td></tr>`;
+ allInvoices.filter(i => inRange(i.invoice_date, from, to)).forEach(i => {
+ const amt = Number(i.amount_payed || 0);
+ const color = amt < 0 ? 'var(--accent-red)' : 'var(--accent-green)';
+ const refundTag = i.is_refund ? ' <span class="badge badge-pending">Refund</span>' : '';
+ tbody.innerHTML += `<tr><td><strong>${i.invoice_number || '-'}</strong>${refundTag}</td><td>${i.student_name || '-'}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.period_covered || '-'}</td><td>${i.payment_method || '-'}</td><td>${i.reference_number || '-'}</td><td>${i.transaction_id || '-'}</td><td>${i.payment_number || '-'}</td><td style="max-width:160px; white-space:normal; font-size:11px;">${i.notes || ''}</td><td style="color:${color}; font-weight:bold;">₪${amt}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editInvoice(${i.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteInvoice(${i.id})">🗑️</button></td></tr>`;
  });
- document.getElementById('st-total-income').innerText = '₪' + totalInc.toFixed(2);
- updateNetProfit();
- } catch(e) {}
  }
 
  async function loadExpenses() {
@@ -450,23 +628,34 @@
  const res = await apiFetch('/api/admin/expenses');
  const data = await res.json();
  allExpenses = data.expenses || [];
- const tbody = document.getElementById('expenses-table-body');
- tbody.innerHTML = '';
- let totalExp = 0;
- allExpenses.forEach(e => {
- totalExp += Number(e.amount || 0);
- tbody.innerHTML += `<tr><td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td><td><strong>${e.tr_name}</strong></td><td><span class="badge badge-pending">${e.category}</span></td><td style="color:var(--accent-red); font-weight:bold;">₪${e.amount}</td></tr>`;
- });
- document.getElementById('st-total-expenses').innerText = '₪' + totalExp.toFixed(2);
- updateNetProfit();
+ renderExpenses();
+ applyStatsFilter();
  } catch(e) {}
  }
 
- function updateNetProfit() {
- const inc = parseFloat(document.getElementById('st-total-income').innerText.replace('₪','')) || 0;
- const exp = parseFloat(document.getElementById('st-total-expenses').innerText.replace('₪','')) || 0;
+ function renderExpenses() {
+ const from = (document.getElementById('exp-from')||{}).value || '';
+ const to = (document.getElementById('exp-to')||{}).value || '';
+ const tbody = document.getElementById('expenses-table-body');
+ tbody.innerHTML = '';
+ allExpenses.filter(e => inRange(e.expense_date, from, to)).forEach(e => {
+ const orig = (e.currency && e.currency !== 'ILS') ? `${e.currency==='USD'?'$':''}${e.amount_original} @${Number(e.fx_rate).toFixed(3)}` : '-';
+ const link = e.file_link ? `<a href="${e.file_link}" target="_blank" style="color:var(--accent-cyan);">📎</a>` : '-';
+ tbody.innerHTML += `<tr><td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td><td><strong>${e.tr_name || '-'}</strong></td><td><span class="badge badge-pending">${e.category || '-'}</span></td><td style="color:var(--accent-red); font-weight:bold;">₪${e.amount}</td><td style="font-size:11px;">${orig}</td><td>${e.payment_method || '-'}</td><td>${e.invoice_received || '-'}</td><td>${link}</td><td style="max-width:150px; white-space:normal; font-size:11px;">${e.notes || ''}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editExpense(${e.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteExpense(${e.id})">🗑️</button></td></tr>`;
+ });
+ }
+
+ function applyStatsFilter() {
+ const from = (document.getElementById('stat-from')||{}).value || '';
+ const to = (document.getElementById('stat-to')||{}).value || '';
+ const inc = allInvoices.filter(i => inRange(i.invoice_date, from, to)).reduce((s,i)=>s+Number(i.amount_payed||0),0);
+ const exp = allExpenses.filter(e => inRange(e.expense_date, from, to)).reduce((s,e)=>s+Number(e.amount||0),0);
+ document.getElementById('st-total-income').innerText = '₪' + inc.toFixed(2);
+ document.getElementById('st-total-expenses').innerText = '₪' + exp.toFixed(2);
  document.getElementById('st-net-profit').innerText = '₪' + (inc - exp).toFixed(2);
  }
+
+ function updateNetProfit() { applyStatsFilter(); }
 
  async function loadCalendarView() {
  try {
@@ -477,6 +666,9 @@
  const blockedRes = await apiFetch('/api/admin/blocked-slots');
  const blockedData = await blockedRes.json();
  const blockedSlots = blockedData.blockedSlots || [];
+ const recurringBlocks = slotsData.defaultGlobalBlocked || [];
+ const weeklyBlocks = slotsData.weeklyGlobalBlocked || [];
+ window.__weeklyBlocks = weeklyBlocks;
  days.forEach((dayInfo, index) => {
  if (index < 5) {
  document.getElementById(`day-header-${index}`).innerText = `${dayInfo.name} (${dayInfo.date})`;
@@ -487,14 +679,21 @@
  const endTime = slotTime.split(' - ')[1];
  const booked = appointments.find(a => a.day_index === index && a.start_time === startTime);
  const blocked = blockedSlots.find(b => b.day_index === index && b.start_time === startTime);
- let classNames = 'slot-item'; let content = '';
- if (booked) { classNames += ' slot-booked'; content = `👤 ${booked.booked_by_name}`; }
- else if (blocked) { classNames += ' slot-blocked'; content = `🚫 Blocked`; }
- else { content = `<span style="color:var(--text-muted);">Available</span>`; }
- colEl.innerHTML += `<div class="${classNames}" onclick="openDirectBookModal(${index}, '${startTime}', '${endTime}', '${booked ? booked.booked_by_name : ''}')">${content}</div>`;
+ const recBlocked = recurringBlocks.includes(`${index}_${startTime}`);
+ const weekBlocked = weeklyBlocks.includes(`${index}_${startTime}`);
+ let classNames = 'slot-item'; let content = ''; let onclick = '';
+ if (booked) { classNames += ' slot-booked'; content = `👤 ${booked.booked_by_name}${booked.is_fixed ? ' <span style="font-size:10px; font-weight:700; color:#22d3ee;">📌 קבוע</span>' : ''}`; onclick = `cancelLesson(${booked.id}, '${(booked.booked_by_name||'').replace(/'/g,"")}')`; }
+ else if (recBlocked) { classNames += ' slot-blocked'; content = `🔁 חסום קבוע`; onclick = `removeRecurringBlock(${index}, '${startTime}')`; }
+ else if (weekBlocked) { classNames += ' slot-blocked'; content = `🗓️ חסום (השבוע)`; onclick = `removeWeeklyBlock(${index}, '${startTime}')`; }
+ else if (blocked) { classNames += ' slot-blocked'; content = `🚫 Blocked`; onclick = `unblockSlot(${blocked.id})`; }
+ else { content = `<span style="color:var(--text-muted);">Available</span>`; onclick = `openDirectBookModal(${index}, '${startTime}', '${endTime}', '')`; }
+ colEl.innerHTML += `<div class="${classNames}" onclick="${onclick}">${content}</div>`;
  });
  }
  });
+ loadUpcoming();
+ populateWeeklyStudents();
+ loadBookingStatus();
  } catch(e) {}
  }
 
@@ -532,8 +731,22 @@
  const slotVal = document.getElementById('block-slot-select').value;
  const [startTime, endTime] = slotVal.split(' - ');
  const body = { dayIndex: Number(document.getElementById('block-day-index').value), startTime, endTime };
- const res = await apiFetch('/api/admin/blocked-slots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
- if (res.ok) { alert('Slot blocked successfully!'); loadCalendarView(); }
+ const isRecurring = document.getElementById('block-type').value === 'recurring';
+ const url = isRecurring ? '/api/admin/recurring-block/add' : '/api/admin/blocked-slots';
+ const res = await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) { alert(isRecurring ? 'סלוט נחסם חסימה קבועה (כל שבוע)!' : 'Slot blocked successfully!'); loadCalendarView(); }
+ }
+ async function removeRecurringBlock(dayIndex, startTime) {
+ if (!confirm('להסיר את החסימה הקבועה? הסלוט ישוחרר בכל השבועות.')) return;
+ const res = await apiFetch('/api/admin/recurring-block/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dayIndex, startTime }) });
+ if (res.ok) loadCalendarView();
+ }
+
+ async function removeWeeklyBlock(dayIndex, startTime) {
+ const key = `${dayIndex}_${startTime}`;
+ const current = (window.__weeklyBlocks || []).filter(k => k !== key);
+ const res = await apiFetch('/api/admin/global-blocks/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ weeklyGlobalBlocked: current }) });
+ if (res && res.ok) loadCalendarView();
  }
 
  function openResetWeekModal() {
@@ -560,6 +773,14 @@
  document.getElementById('m_student_email').value = s.email || '';
  document.getElementById('m_student_quota').value = s.default_quota || 2;
  document.getElementById('m_student_amount').value = s.total_amount || 4900;
+ document.getElementById('m_student_total_lessons').value = s.total_lessons != null ? s.total_lessons : 16;
+ document.getElementById('m_student_completed').value = s.completed_lessons != null ? s.completed_lessons : 0;
+ document.getElementById('m_student_duration').value = s.process_duration_months != null ? s.process_duration_months : 4;
+ document.getElementById('m_student_start_date').value = s.start_date ? s.start_date.substring(0, 10) : new Date().toISOString().split('T')[0];
+ document.getElementById('m_student_validity').value = s.validity_expiration_date ? s.validity_expiration_date.substring(0, 10) : '';
+ renderSlotCheckboxes('m_allowed_slots', deriveStudentAllowed(s));
+ currentFixedLessons = Array.isArray(s.fixed_lessons) ? s.fixed_lessons.map(f => ({ dayIndex: Number(f.dayIndex), startTime: f.startTime, endTime: f.endTime })) : [];
+ renderFixedLessons();
  document.getElementById('m_student_is_past').value = s.is_past_student ? 'true' : 'false';
  }
  } else {
@@ -568,8 +789,16 @@
  document.getElementById('m_student_email').value = '';
  document.getElementById('m_student_quota').value = 2;
  document.getElementById('m_student_amount').value = 4900;
+ document.getElementById('m_student_total_lessons').value = 16;
+ document.getElementById('m_student_completed').value = 0;
+ document.getElementById('m_student_duration').value = 4;
+ document.getElementById('m_student_validity').value = '';
+ renderSlotCheckboxes('m_allowed_slots', []);
+ currentFixedLessons = [];
+ renderFixedLessons();
  document.getElementById('m_student_is_past').value = 'false';
  }
+ populateFixedSlotSelect();
  document.getElementById('student-modal').style.display = 'flex';
  }
 
@@ -584,9 +813,13 @@
  default_quota: Number(document.getElementById('m_student_quota').value),
  total_amount: Number(document.getElementById('m_student_amount').value),
  total_lessons: Number(document.getElementById('m_student_total_lessons').value),
+ completed_lessons: Number(document.getElementById('m_student_completed').value),
  process_duration_months: Number(document.getElementById('m_student_duration').value),
  start_date: document.getElementById('m_student_start_date').value,
- is_past_student: document.getElementById('m_student_is_past').value === 'true'
+ validity_expiration_date: document.getElementById('m_student_validity').value || null,
+ is_past_student: document.getElementById('m_student_is_past').value === 'true',
+ allowed_slots: getCheckedSlots('m_allowed_slots'),
+ fixed_lessons: currentFixedLessons
  };
  const res = await apiFetch('/api/admin/students-full/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
  if (res.ok) { alert('Student saved successfully!'); closeModal('student-modal'); loadStudents(); }
@@ -594,36 +827,426 @@
  }
 
  function openInvoiceModal() {
+ editingInvoiceId = null;
+ const t0 = document.getElementById('invoice-modal-title'); if (t0) t0.innerText = 'New Invoice / Income';
  document.getElementById('i_date').value = new Date().toISOString().split('T')[0];
+ document.getElementById('i_is_refund').value = 'false';
+ ['i_number','i_period','i_reference','i_transaction','i_payment_num','i_notes','i_amount'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
  document.getElementById('invoice-modal').style.display = 'flex';
  }
 
  async function saveInvoice() {
  const body = {
+ id: editingInvoiceId,
  invoice_number: document.getElementById('i_number').value,
  student_name: document.getElementById('i_student_select').value,
  invoice_date: document.getElementById('i_date').value,
  payment_method: document.getElementById('i_method').value,
- amount_payed: Number(document.getElementById('i_amount').value)
+ amount_payed: Number(document.getElementById('i_amount').value),
+ is_refund: document.getElementById('i_is_refund').value === 'true',
+ period_covered: document.getElementById('i_period').value,
+ reference_number: document.getElementById('i_reference').value,
+ transaction_id: document.getElementById('i_transaction').value,
+ payment_number: document.getElementById('i_payment_num').value,
+ notes: document.getElementById('i_notes').value
  };
  const res = await apiFetch('/api/admin/invoices/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
  if (res.ok) { alert('Invoice saved successfully!'); closeModal('invoice-modal'); loadInvoices(); loadStudents(); }
  }
 
  function openExpenseModal() {
+ editingExpenseId = null;
+ const t0 = document.getElementById('expense-modal-title'); if (t0) t0.innerText = 'New Expense';
  document.getElementById('e_date').value = new Date().toISOString().split('T')[0];
+ ['e_name','e_amount','e_payment_method','e_file_link','e_notes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+ document.getElementById('e_currency').value = 'ILS';
+ document.getElementById('e_invoice_received').value = '';
+ document.getElementById('e_fx_preview').innerText = '';
  document.getElementById('expense-modal').style.display = 'flex';
+ }
+
+ async function updateExpensePreview() {
+ const cur = document.getElementById('e_currency').value;
+ const amt = Number(document.getElementById('e_amount').value) || 0;
+ const prev = document.getElementById('e_fx_preview');
+ if (cur !== 'USD') { prev.innerText = ''; return; }
+ const date = document.getElementById('e_date').value;
+ try {
+ const res = await apiFetch('/api/admin/fx-rate?date=' + encodeURIComponent(date || ''));
+ const data = await res.json();
+ prev.innerText = `≈ ₪${(amt * data.rate).toFixed(2)}  (שער USD→ILS: ${Number(data.rate).toFixed(4)})`;
+ } catch (e) { prev.innerText = 'שגיאה בשליפת שער'; }
  }
 
  async function saveExpense() {
  const body = {
+ id: editingExpenseId,
  expense_date: document.getElementById('e_date').value,
  tr_name: document.getElementById('e_name').value,
  category: document.getElementById('e_category').value,
- amount: Number(document.getElementById('e_amount').value)
+ amount: Number(document.getElementById('e_amount').value),
+ currency: document.getElementById('e_currency').value,
+ payment_method: document.getElementById('e_payment_method').value,
+ invoice_received: document.getElementById('e_invoice_received').value,
+ file_link: document.getElementById('e_file_link').value,
+ notes: document.getElementById('e_notes').value
  };
  const res = await apiFetch('/api/admin/expenses/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
  if (res.ok) { alert('Expense saved successfully!'); closeModal('expense-modal'); loadExpenses(); }
+ }
+
+ async function deleteInvoice(id) {
+ if (!confirm('Delete this invoice / payment? This cannot be undone.')) return;
+ const res = await apiFetch('/api/admin/invoices/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ if (res.ok) { loadInvoices(); loadStudents(); }
+ }
+
+ async function deleteExpense(id) {
+ if (!confirm('Delete this expense? This cannot be undone.')) return;
+ const res = await apiFetch('/api/admin/expenses/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ if (res.ok) { loadExpenses(); }
+ }
+
+ async function unblockSlot(id) {
+ if (!confirm('Remove this block? The slot will become available again.')) return;
+ const res = await apiFetch('/api/admin/blocked-slots/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ if (res.ok) loadCalendarView();
+ }
+
+ async function cancelLesson(id, name) {
+ if (!confirm(`Cancel the lesson for ${name}? The slot will become available.`)) return;
+ const res = await apiFetch('/api/admin/delete-appointment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ if (res.ok) loadCalendarView();
+ }
+
+ function editInvoice(id) {
+ const i = allInvoices.find(x => x.id === id);
+ if (!i) return;
+ editingInvoiceId = id;
+ document.getElementById('i_number').value = i.invoice_number || '';
+ document.getElementById('i_student_select').value = i.student_name || '';
+ document.getElementById('i_date').value = i.invoice_date ? i.invoice_date.substring(0,10) : '';
+ document.getElementById('i_method').value = i.payment_method || '';
+ document.getElementById('i_period').value = i.period_covered || '';
+ document.getElementById('i_reference').value = i.reference_number || '';
+ document.getElementById('i_transaction').value = i.transaction_id || '';
+ document.getElementById('i_payment_num').value = i.payment_number || '';
+ document.getElementById('i_notes').value = i.notes || '';
+ document.getElementById('i_amount').value = Math.abs(Number(i.amount_payed || 0));
+ document.getElementById('i_is_refund').value = i.is_refund ? 'true' : 'false';
+ const t = document.getElementById('invoice-modal-title'); if (t) t.innerText = 'Edit Invoice / Income';
+ document.getElementById('invoice-modal').style.display = 'flex';
+ }
+
+ function editExpense(id) {
+ const e = allExpenses.find(x => x.id === id);
+ if (!e) return;
+ editingExpenseId = id;
+ document.getElementById('e_date').value = e.expense_date ? e.expense_date.substring(0,10) : '';
+ document.getElementById('e_name').value = e.tr_name || '';
+ document.getElementById('e_category').value = e.category || '';
+ const cur = (e.currency === 'USD') ? 'USD' : 'ILS';
+ document.getElementById('e_currency').value = cur;
+ document.getElementById('e_amount').value = (cur === 'USD' && e.amount_original != null) ? e.amount_original : e.amount;
+ document.getElementById('e_payment_method').value = e.payment_method || '';
+ document.getElementById('e_invoice_received').value = e.invoice_received || '';
+ document.getElementById('e_file_link').value = e.file_link || '';
+ document.getElementById('e_notes').value = e.notes || '';
+ updateExpensePreview();
+ const t = document.getElementById('expense-modal-title'); if (t) t.innerText = 'Edit Expense';
+ document.getElementById('expense-modal').style.display = 'flex';
+ }
+
+ // ===== Student progress + Payments (installments) =====
+ async function completeLesson(id) {
+ await apiFetch('/api/admin/students/complete-lesson', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, delta: 1 }) });
+ loadStudents();
+ }
+
+ function openPaymentsModal(studentId) {
+ const s = allStudents.find(x => x.id == studentId);
+ if (!s) return;
+ currentPaymentsStudent = s.name;
+ document.getElementById('payments-student-name').innerText = s.name;
+ document.getElementById('pay-total').value = s.total_amount || '';
+ document.getElementById('pay-count').value = 6;
+ document.getElementById('pay-first-date').value = new Date().toISOString().split('T')[0];
+ loadPayments(s.name);
+ document.getElementById('payments-modal').style.display = 'flex';
+ }
+
+ async function loadPayments(studentName) {
+ const res = await apiFetch('/api/admin/payments?student_name=' + encodeURIComponent(studentName));
+ const data = await res.json();
+ const rows = data.payments || [];
+ const tbody = document.getElementById('payments-table-body');
+ tbody.innerHTML = '';
+ let paidSum = 0, pendingSum = 0;
+ rows.forEach(p => {
+ const amt = Number(p.amount || 0);
+ if (p.status === 'paid') paidSum += amt; else pendingSum += amt;
+ const due = p.due_date ? p.due_date.substring(0, 10) : '';
+ const statusBadge = p.status === 'paid' ? '<span class="badge badge-paid">Paid</span>' : '<span class="badge badge-pending">Pending</span>';
+ const actionBtn = p.status === 'paid'
+ ? `<button class="btn-action btn-del" onclick="updatePayment(${p.id}, {status:'pending'})">Unpay</button>`
+ : `<button class="btn-action btn-green" onclick="updatePayment(${p.id}, {status:'paid'})">Mark Paid</button>`;
+ tbody.innerHTML += `<tr><td>${p.installment_number}/${p.total_installments}</td><td><input type="date" value="${due}" style="font-size:11px;" onchange="updatePayment(${p.id}, {due_date: this.value})"></td><td><input type="number" value="${amt}" style="width:80px; font-size:11px;" onchange="updatePayment(${p.id}, {amount: this.value})"></td><td>${statusBadge}</td><td style="white-space:nowrap;">${actionBtn} <button class="btn-action btn-red" onclick="deletePayment(${p.id})">🗑️</button></td></tr>`;
+ });
+ document.getElementById('payments-summary').innerHTML = `✅ Paid: <strong style="color:var(--accent-green);">₪${paidSum.toFixed(2)}</strong> &nbsp;|&nbsp; ⏳ Outstanding: <strong style="color:var(--accent-orange);">₪${pendingSum.toFixed(2)}</strong>`;
+ }
+
+ async function generatePlan() {
+ const totalAmount = Number(document.getElementById('pay-total').value);
+ const numInstallments = Number(document.getElementById('pay-count').value);
+ const firstDueDate = document.getElementById('pay-first-date').value;
+ if (!totalAmount || !numInstallments || !firstDueDate) return alert('Enter total amount, number of installments, and first due date.');
+ if (!confirm('This will replace any existing plan for this student. Continue?')) return;
+ await apiFetch('/api/admin/payments/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_name: currentPaymentsStudent, totalAmount, numInstallments, firstDueDate }) });
+ loadPayments(currentPaymentsStudent);
+ }
+
+ async function updatePayment(id, fields) {
+ await apiFetch('/api/admin/payments/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ id }, fields)) });
+ loadPayments(currentPaymentsStudent);
+ }
+
+ async function deletePayment(id) {
+ if (!confirm('Delete this payment?')) return;
+ await apiFetch('/api/admin/payments/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ loadPayments(currentPaymentsStudent);
+ }
+
+ async function loadUpcoming() {
+ try {
+ const res = await apiFetch('/api/admin/upcoming?days=7');
+ const data = await res.json();
+ const items = data.upcoming || [];
+ const alerts = data.alerts || [];
+ const el = document.getElementById('upcoming-list');
+ if (!el) return;
+ let alertHtml = '';
+ if (alerts.length) {
+ alertHtml = alerts.map(a => `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--card-border);"><span>⚠️ <strong>${a.name}</strong> <span style="color:var(--text-muted);">מתקרב לסיום</span></span><span style="color:var(--accent-red); font-weight:700;">${a.detail}</span></div>`).join('');
+ }
+ if (!items.length && !alerts.length) { el.innerHTML = 'אין תשלומים, הוצאות צפויים או התראות ב-7 הימים הקרובים.'; return; }
+ el.innerHTML = alertHtml + items.map(it => {
+ const icon = it.type === 'payment' ? '💰' : '🔁';
+ const color = it.type === 'payment' ? 'var(--accent-green)' : 'var(--accent-red)';
+ const sym = it.currency === 'USD' ? '$' : '₪';
+ return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--card-border);"><span>${icon} <strong>${it.date}</strong> — ${it.name} <span style="color:var(--text-muted);">(${it.detail})</span></span><span style="color:${color}; font-weight:700;">${sym}${Number(it.amount).toFixed(2)}</span></div>`;
+ }).join('');
+ } catch(e) {}
+ }
+
+ function populateWeeklyStudents() {
+ const sel = document.getElementById('ws-student');
+ if (!sel) return;
+ const cur = sel.value;
+ sel.innerHTML = '<option value="">— Select student —</option>';
+ allStudents.filter(s => !s.is_past_student).forEach(s => { sel.innerHTML += `<option value="${s.name}">${s.name}</option>`; });
+ if (cur) sel.value = cur;
+ }
+
+ function renderSlotCheckboxes(containerId, checked) {
+ const el = document.getElementById(containerId);
+ if (!el) return;
+ const set = new Set(checked || []);
+ el.innerHTML = fixedTimeSlots.map(slot =>
+ `<label style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-main); cursor:pointer;"><input type="checkbox" value="${slot}" ${set.has(slot) ? 'checked' : ''} style="width:16px; height:16px;"> ${slot}</label>`
+ ).join('');
+ }
+
+ function getCheckedSlots(containerId) {
+ return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]:checked`)).map(c => c.value);
+ }
+
+ async function loadWeeklyOverride() {
+ const name = document.getElementById('ws-student').value;
+ const statusEl = document.getElementById('ws-status');
+ document.getElementById('ws-quota').value = '';
+ renderSlotCheckboxes('ws-slots', []);
+ if (!name) { statusEl.innerText = ''; return; }
+ try {
+ const res = await apiFetch('/api/admin/students/weekly-override?student_name=' + encodeURIComponent(name));
+ const data = await res.json();
+ const cfg = data.config;
+ const stud = allStudents.find(x => x.name === name) || {};
+ // סימון הסלוטים: דריסת השבוע אם קיימת; אחרת ברירת המחדל של התלמיד; ואם אין לו הגבלה (ריק=הכל מותר) — מסמנים את כל הסלוטים
+ let effSlots;
+ if (cfg && cfg.allowed_slots_override && cfg.allowed_slots_override.length) {
+ effSlots = cfg.allowed_slots_override;
+ } else {
+ const def = deriveStudentAllowed(stud);
+ effSlots = def.length ? def : fixedTimeSlots.slice();
+ }
+ renderSlotCheckboxes('ws-slots', effSlots);
+ if (cfg && cfg.quota_override !== null && cfg.quota_override !== undefined) {
+ document.getElementById('ws-quota').value = cfg.quota_override;
+ statusEl.innerText = 'דריסה פעילה לשבוע זה.';
+ } else {
+ statusEl.innerText = 'אין דריסה — משתמש במכסת/סלוטי ברירת המחדל של התלמיד.';
+ }
+ } catch(e) {}
+ }
+
+ async function saveWeeklyOverride() {
+ const name = document.getElementById('ws-student').value;
+ if (!name) return alert('בחרי תלמיד תחילה.');
+ const q = document.getElementById('ws-quota').value;
+ const quota_override = (q === '' ? null : Number(q));
+ const allowed_slots_override = getCheckedSlots('ws-slots');
+ const res = await apiFetch('/api/admin/students/weekly-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_name: name, quota_override, allowed_slots_override }) });
+ if (res.ok) { document.getElementById('ws-status').innerText = '✅ נשמר.'; }
+ }
+
+ function openRecurringModal() {
+ document.getElementById('r_start').value = new Date().toISOString().split('T')[0];
+ loadRecurring();
+ document.getElementById('recurring-modal').style.display = 'flex';
+ }
+
+ async function loadRecurring() {
+ const res = await apiFetch('/api/admin/recurring-expenses');
+ const data = await res.json();
+ const tbody = document.getElementById('recurring-table-body');
+ tbody.innerHTML = '';
+ (data.recurring || []).forEach(r => {
+ const sym = r.currency === 'USD' ? '$' : '₪';
+ const next = r.next_run ? String(r.next_run).substring(0,10) : '-';
+ const status = r.active ? '<span style="color:var(--accent-green);">Active</span>' : '<span style="color:var(--text-muted);">Paused</span>';
+ const toggleBtn = r.active
+ ? `<button class="btn-action btn-del" onclick="toggleRecurring(${r.id}, false)" title="Pause future auto-insertions">⏸️</button>`
+ : `<button class="btn-action btn-green" onclick="toggleRecurring(${r.id}, true)" title="Resume">▶️</button>`;
+ tbody.innerHTML += `<tr><td><strong>${r.tr_name||'-'}</strong></td><td>${r.frequency}</td><td>${sym}${r.amount}</td><td style="font-size:11px;">${next}</td><td>${status}</td><td style="white-space:nowrap;">${toggleBtn} <button class="btn-action btn-red" onclick="deleteRecurring(${r.id})">🗑️</button></td></tr>`;
+ });
+ }
+
+ async function toggleRecurring(id, active) {
+ const res = await apiFetch('/api/admin/recurring-expenses/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active }) });
+ if (res.ok) { loadRecurring(); loadUpcoming(); }
+ }
+
+ async function saveRecurring() {
+ const body = {
+ tr_name: document.getElementById('r_name').value,
+ category: document.getElementById('r_category').value,
+ amount: document.getElementById('r_amount').value,
+ currency: document.getElementById('r_currency').value,
+ payment_method: document.getElementById('r_method').value,
+ frequency: document.getElementById('r_frequency').value,
+ start_date: document.getElementById('r_start').value
+ };
+ if (!body.tr_name || !body.amount || !body.start_date) return alert('נא למלא תיאור, סכום ותאריך התחלה.');
+ const res = await apiFetch('/api/admin/recurring-expenses/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+ if (res.ok) {
+ document.getElementById('r_name').value = ''; document.getElementById('r_amount').value = '';
+ loadRecurring(); loadExpenses(); loadUpcoming();
+ }
+ }
+
+ async function deleteRecurring(id) {
+ if (!confirm('למחוק את ההוצאה החוזרת? מופעים שכבר נוצרו יישארו.')) return;
+ const res = await apiFetch('/api/admin/recurring-expenses/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+ if (res.ok) loadRecurring();
+ }
+
+ let currentFixedLessons = [];
+ const flDayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+ function populateFixedSlotSelect() {
+ const sel = document.getElementById('m_fl_slot');
+ if (!sel) return;
+ sel.innerHTML = '';
+ fixedTimeSlots.forEach(slot => { sel.innerHTML += `<option value="${slot}">${slot}</option>`; });
+ }
+ function renderFixedLessons() {
+ const cont = document.getElementById('m_fixed_lessons_list');
+ if (!cont) return;
+ if (!currentFixedLessons.length) { cont.innerHTML = '<span style="color:var(--text-muted); font-size:11px;">אין שיעורים קבועים</span>'; return; }
+ cont.innerHTML = currentFixedLessons.map((f, i) =>
+ `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; padding:3px 6px; background:rgba(6,182,212,0.08); border-radius:6px;"><span>📌 ${flDayNames[f.dayIndex]} — ${f.startTime} - ${f.endTime}</span><button class="btn-action btn-del" type="button" style="padding:2px 8px;" onclick="removeFixedLesson(${i})">🗑️</button></div>`
+ ).join('');
+ }
+ function addFixedLesson() {
+ const dayIndex = Number(document.getElementById('m_fl_day').value);
+ const slotVal = document.getElementById('m_fl_slot').value;
+ if (!slotVal) return;
+ const [startTime, endTime] = slotVal.split(' - ');
+ if (currentFixedLessons.some(f => f.dayIndex === dayIndex && f.startTime === startTime)) return alert('השיעור הקבוע הזה כבר קיים.');
+ currentFixedLessons.push({ dayIndex, startTime, endTime });
+ renderFixedLessons();
+ }
+ function removeFixedLesson(i) {
+ currentFixedLessons.splice(i, 1);
+ renderFixedLessons();
+ }
+ function deriveStudentAllowed(s) {
+ // ההיתר לפי allowed_slots בלבד; שיעורים קבועים אינם מגבילים היכן מותר לקבוע (ריק = הכל מותר)
+ if (s && s.allowed_slots && s.allowed_slots.length) return s.allowed_slots;
+ return [];
+ }
+
+ async function loadBookingStatus() {
+ try {
+ const res = await apiFetch('/api/slots');
+ const data = await res.json();
+ const mode = (data.isOpen === false) ? 'none' : (data.openMode || 'all');
+ const sel = document.getElementById('booking-mode');
+ if (sel) sel.value = mode;
+ const wrap = document.getElementById('booking-students');
+ const allowed = new Set(data.allowedStudentsList || []);
+ if (wrap) {
+ wrap.innerHTML = allStudents.filter(s => !s.is_past_student).map(s =>
+ `<label style="display:flex; align-items:center; gap:6px; font-size:11px; cursor:pointer;"><input type="checkbox" value="${s.name}" ${allowed.has(s.name)?'checked':''} style="width:16px; height:16px;"> ${s.name}</label>`
+ ).join('');
+ }
+ onBookingModeChange();
+ } catch(e) {}
+ }
+
+ function onBookingModeChange() {
+ const sel = document.getElementById('booking-mode');
+ if (!sel) return;
+ document.getElementById('booking-students-wrap').style.display = (sel.value === 'specific') ? 'block' : 'none';
+ }
+
+ async function saveBookingStatus() {
+ const mode = document.getElementById('booking-mode').value;
+ const isOpen = (mode !== 'none');
+ const openMode = (mode === 'none') ? 'none' : mode;
+ const allowedStudents = (mode === 'specific')
+ ? Array.from(document.querySelectorAll('#booking-students input[type=checkbox]:checked')).map(c => c.value)
+ : [];
+ const res = await apiFetch('/api/admin/toggle-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isOpen, openMode, allowedStudents }) });
+ if (res.ok) document.getElementById('booking-status-msg').innerText = '✅ מצב הגישה נשמר.';
+ }
+
+ async function downloadBackup() {
+ try {
+ const res = await apiFetch('/api/admin/backup');
+ if (!res.ok) return alert('הגיבוי נכשל. ודאי שאת מחוברת.');
+ const blob = await res.blob();
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = `booking-backup-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+ document.body.appendChild(a); a.click(); a.remove();
+ URL.revokeObjectURL(url);
+ } catch(e) { alert('שגיאה בהורדת הגיבוי: ' + e.message); }
+ }
+
+ async function restoreBackup(input) {
+ const file = input.files[0];
+ if (!file) return;
+ if (!confirm('⚠️ שחזור ימחק את כל הנתונים הנוכחיים ויחליף אותם בגיבוי. להמשיך?')) { input.value=''; return; }
+ if (!confirm('אישור אחרון — הפעולה בלתי הפיכה. ודאי שיש לך גיבוי עדכני. להמשיך?')) { input.value=''; return; }
+ try {
+ const data = JSON.parse(await file.text());
+ const res = await apiFetch('/api/admin/restore', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ data, confirm: 'RESTORE' }) });
+ const j = await res.json().catch(()=>({}));
+ if (res.ok) { alert('✅ השחזור הושלם. טוען מחדש...'); location.reload(); }
+ else alert('שגיאה בשחזור: ' + (j.error || res.status));
+ } catch(e) { alert('קובץ גיבוי לא תקין: ' + e.message); }
+ input.value='';
  }
 
  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
