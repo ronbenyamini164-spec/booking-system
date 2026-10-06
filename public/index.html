@@ -4,6 +4,8 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>מערכת קביעת שיעורים</title>
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
  <style>
  body { font-family: system-ui, -apple-system, sans-serif; background-color: #f8f9fa; margin: 0; padding: 15px; direction: rtl; }
  .container { max-width: 1050px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); box-sizing: border-box; }
@@ -96,6 +98,131 @@
  #theme-toggle:active { transform: scale(0.92); }
  @media (max-width:600px) { .container { padding:14px; } h1 { font-size:20px; } .login-box { margin:20px auto; padding:18px; } #theme-toggle { width:38px; height:38px; font-size:16px; } }
  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+
+ /* ============================================================
+    AURORA GLASS — visual upgrade (RTL, visual only)
+    ============================================================ */
+ :root {
+ --ag1:#06b6d4; --ag2:#6366f1; --ag3:#a855f7;
+ --ag-glass:rgba(255,255,255,0.70); --ag-border:rgba(255,255,255,0.75);
+ --ag-shadow:0 24px 60px -24px rgba(30,58,138,0.35); --ag-ring:rgba(99,102,241,0.35);
+ --ag-bg:#eef2f9; --ag-text:#0f172a; --ag-muted:#5f6368;
+ }
+ :root[data-theme="dark"] {
+ --ag-glass:rgba(18,24,40,0.60); --ag-border:rgba(255,255,255,0.08);
+ --ag-shadow:0 24px 60px -24px rgba(0,0,0,0.75); --ag-ring:rgba(34,211,238,0.35);
+ --ag-bg:#060910; --ag-text:#e8eef9; --ag-muted:#94a3b8;
+ }
+ html { overflow-x:hidden; }
+ body { font-family:'Heebo', system-ui, -apple-system, sans-serif !important; color: var(--ag-text); background: var(--ag-bg) !important; position:relative; min-height:100vh; }
+ body::before { content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+ background: radial-gradient(42vw 42vw at 15% 10%, rgba(6,182,212,0.22), transparent 60%),
+ radial-gradient(40vw 40vw at 85% 14%, rgba(168,85,247,0.20), transparent 60%),
+ radial-gradient(46vw 46vw at 70% 92%, rgba(99,102,241,0.20), transparent 62%);
+ filter: blur(10px); animation: agDrift 22s ease-in-out infinite alternate; }
+ body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+ background-image: linear-gradient(rgba(99,102,241,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.045) 1px, transparent 1px);
+ background-size:44px 44px; -webkit-mask-image: radial-gradient(circle at 50% 25%, #000, transparent 80%); mask-image: radial-gradient(circle at 50% 25%, #000, transparent 80%); }
+ @keyframes agDrift { from { transform: translate3d(-2%,-1%,0) scale(1); } to { transform: translate3d(2%,2%,0) scale(1.08); } }
+
+ .container { background: var(--ag-glass) !important; -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%); border:1px solid var(--ag-border); border-radius:24px !important; box-shadow: var(--ag-shadow), inset 0 1px 0 rgba(255,255,255,0.55) !important; }
+ :root[data-theme="dark"] .container { box-shadow: var(--ag-shadow), inset 0 1px 0 rgba(255,255,255,0.06) !important; }
+ h1 { font-family:'Space Grotesk','Heebo',sans-serif; background: linear-gradient(120deg,var(--ag1),var(--ag2) 55%,var(--ag3)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-size:28px !important; }
+ p.subtitle, #welcome-msg { color: var(--ag-muted) !important; }
+
+ .login-box { background: var(--ag-glass) !important; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border:1px solid var(--ag-border) !important; border-radius:18px !important; box-shadow: var(--ag-shadow) !important; }
+ .login-box input { border-radius:12px !important; }
+ .login-box input:focus { outline:none; border-color:var(--ag2) !important; box-shadow:0 0 0 3px var(--ag-ring); }
+ .login-box button, .btn-confirm { background: linear-gradient(120deg,#3b82f6,#6366f1) !important; border-radius:12px !important; box-shadow:0 10px 24px -10px rgba(59,130,246,.6); }
+ .btn-cancel { background: linear-gradient(120deg,#64748b,#475569) !important; border-radius:12px !important; }
+
+ .calendar-wrapper { border:1px solid var(--ag-border) !important; border-radius:16px !important; background: transparent !important; }
+ .calendar-grid { background: transparent !important; }
+ .header-cell { background: linear-gradient(180deg, rgba(99,102,241,0.14), rgba(6,182,212,0.08)) !important; color: var(--ag-text) !important; border-color: var(--ag-border) !important; font-family:'Space Grotesk','Heebo',sans-serif; letter-spacing:.3px; }
+ .time-cell { background: rgba(255,255,255,0.04) !important; color: var(--ag-muted) !important; border-color: var(--ag-border) !important; font-variant-numeric: tabular-nums; }
+ .day-column { border-color: var(--ag-border) !important; }
+ .slot-btn { background: transparent !important; color: var(--ag-text) !important; border-color: var(--ag-border) !important; font-variant-numeric: tabular-nums; transition: all .15s ease; }
+ .slot-btn:hover:not(:disabled) { background: linear-gradient(120deg, rgba(6,182,212,0.16), rgba(99,102,241,0.16)) !important; color: var(--ag2) !important; box-shadow: inset 0 0 0 1px var(--ag-ring), 0 6px 16px -8px var(--ag-ring); font-weight:700; }
+ .slot-btn:disabled { background: repeating-linear-gradient(45deg, rgba(148,163,184,0.08), rgba(148,163,184,0.08) 6px, transparent 6px, transparent 12px) !important; color: var(--ag-muted) !important; }
+
+ .block-selected { background: linear-gradient(120deg,#3b82f6,#6366f1) !important; color:#fff !important; box-shadow:0 0 0 1px var(--ag-ring), 0 8px 18px -8px var(--ag-ring); border:none !important; }
+ .selected-badge { background: linear-gradient(120deg, rgba(6,182,212,0.16), rgba(99,102,241,0.16)) !important; border:1px solid var(--ag-ring) !important; color: var(--ag2) !important; border-radius:20px !important; }
+
+ .booking-box { background: var(--ag-glass) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border:1px solid var(--ag-border) !important; border-radius:16px !important; }
+ .modal-content { background: var(--ag-glass) !important; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border:1px solid var(--ag-border) !important; border-radius:20px !important; box-shadow: var(--ag-shadow) !important; color: var(--ag-text); }
+ .modal-overlay { background: rgba(2,6,20,0.55) !important; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+ #confirm-details { background: rgba(255,255,255,0.04) !important; border-radius:12px; }
+
+ #theme-toggle { background: linear-gradient(120deg,#3b82f6,#6366f1) !important; box-shadow:0 10px 24px -10px rgba(59,130,246,.6) !important; }
+
+ *::-webkit-scrollbar { width:11px; height:11px; }
+ *::-webkit-scrollbar-thumb { background: linear-gradient(var(--ag1),var(--ag2)); border-radius:10px; border:3px solid transparent; background-clip:content-box; }
+ *::-webkit-scrollbar-track { background: transparent; }
+
+ /* ============================================================
+    PREMIUM — Apple-grade refinement (RTL, visual only)
+    NOTE: calendar row heights intentionally untouched (JS ROW_HEIGHT=50)
+    ============================================================ */
+ :root { --ag-bg:#f5f5f7; --ag-text:#1d1d1f; --ag-muted:#6e6e73; }
+ :root[data-theme="dark"] { --ag-bg:#000006; --ag-text:#f5f5f7; --ag-muted:#a1a1a6; }
+ * { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+ body { font-size:15px; line-height:1.55; letter-spacing:-0.003em; }
+ @media (min-width:601px){ body { padding:34px 18px; } }
+ body::before { opacity:.5; animation-duration:34s; }
+
+ .container { max-width:1120px !important; padding:44px 44px 48px !important; border-radius:28px !important; }
+ h1 { font-size:40px !important; font-weight:700 !important; letter-spacing:-0.03em !important; margin-bottom:10px !important; }
+ p.subtitle { font-size:16px !important; }
+
+ .login-box { max-width:430px !important; padding:36px !important; margin:52px auto !important; border-radius:22px !important; }
+ .login-box h3 { font-size:23px; font-weight:700; letter-spacing:-0.02em; }
+ .login-box input { font-size:16px !important; padding:14px !important; }
+ .login-box button { font-size:16px !important; padding:14px !important; font-weight:600; }
+
+ .header-cell { padding:14px 6px !important; font-size:14px !important; font-weight:700 !important; letter-spacing:-0.01em; }
+ .time-cell { font-size:12px !important; letter-spacing:-0.01em; }
+ .slot-btn { font-size:14px !important; font-weight:500; letter-spacing:-0.01em; }
+
+ .booking-box { padding:28px !important; border-radius:20px !important; margin-top:30px !important; }
+ .booking-box h3 { font-size:19px; font-weight:700; letter-spacing:-0.02em; }
+ .btn-confirm, .btn-cancel { font-weight:600 !important; padding:13px !important; font-size:15px !important; }
+
+ .container { animation: agUp .55s cubic-bezier(.22,.61,.36,1) both; }
+ @keyframes agUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+ @media (prefers-reduced-motion: reduce){ .container { animation:none !important; } }
+
+ @media (max-width:600px){ .container { padding:22px !important; } h1 { font-size:30px !important; } .login-box { padding:24px !important; margin:28px auto !important; } }
+
+ /* ===== Fit viewport — no horizontal overflow (desktop & mobile) ===== */
+ *, *::before, *::after { box-sizing: border-box; }
+ html { overflow-x: clip; }
+ html, body { max-width: 100%; }
+ .container { width: 100%; }
+ .header-cell, .time-cell, .slot-btn, p.subtitle, #welcome-msg { overflow-wrap: anywhere; }
+ @media (max-width: 600px){
+ .container { padding: 18px !important; border-radius: 20px !important; }
+ h1 { font-size: 26px !important; }
+ #theme-toggle { width: 38px; height: 38px; font-size: 16px; top: 10px; left: 10px; }
+ }
+ /* ===== רוחב מלא + תצוגת סלוטים (final) ===== */
+ .container { max-width: min(1500px, 100%) !important; }
+ /* סלוטים לא זמינים: אדום בלבד, ללא כיתוב */
+ .slot-btn:disabled { background: #fde8e8 !important; color: transparent !important; border-bottom: 1px solid #f6c9c4 !important; }
+ :root[data-theme="dark"] .slot-btn:disabled { background: #3b1d1d !important; color: transparent !important; }
+ .block-booked { color: transparent !important; }
+ /* ===== v3: calendar fits viewport width on phones (no horizontal scroll) ===== */
+ @media (max-width: 700px){
+ .calendar-grid { min-width: 0 !important; grid-template-columns: 38px repeat(5, minmax(0, 1fr)) !important; }
+ .header-cell { font-size: 10px !important; padding: 6px 2px !important; line-height: 1.15; word-break: break-word; }
+ .time-cell { font-size: 9px !important; }
+ .slot-btn { font-size: 10px !important; padding: 0 1px !important; }
+ .calendar-wrapper { overflow-x: hidden; }
+ }
+ @media (max-width: 420px){
+ .calendar-grid { grid-template-columns: 32px repeat(5, minmax(0, 1fr)) !important; }
+ .header-cell { font-size: 9px !important; }
+ .slot-btn { font-size: 9px !important; }
+ }
  </style>
  <script>(function(){try{var t=localStorage.getItem('book-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>
@@ -315,7 +442,7 @@
 
  if (!available) {
  btn.disabled = true;
- btn.innerText = 'לא זמין';
+ btn.innerText = '';
  } else {
  btn.innerText = `${slot.start}`;
  }
@@ -340,7 +467,7 @@
  : `השיעור שלך השבוע (${app.start_time})`;
  } else {
  block.className = 'block-overlay block-booked';
- block.innerText = 'לא זמין';
+ block.innerText = '';
  }
 
  if (slotIndex !== -1) {

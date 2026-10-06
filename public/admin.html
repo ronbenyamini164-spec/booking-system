@@ -5,6 +5,8 @@
  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
  <title>Admin Dashboard & Business Management</title>
  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+ <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
  <script>(function(){try{var t=localStorage.getItem('admin-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
  <style>
@@ -115,6 +117,173 @@
  .modal-content { animation: modalPop .22s ease both; }
  @keyframes modalPop { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: none; } }
  @media (prefers-reduced-motion: reduce) { *, .tab-content, .modal-content { animation: none !important; transition: none !important; } }
+ /* ============================================================
+    AURORA GLASS — visual upgrade (visual only, no DOM/JS changes)
+    ============================================================ */
+ :root {
+ --ag1:#06b6d4; --ag2:#6366f1; --ag3:#a855f7;
+ --ag-glass:rgba(255,255,255,0.68); --ag-border:rgba(255,255,255,0.75);
+ --ag-shadow:0 20px 50px -20px rgba(30,58,138,0.35); --ag-ring:rgba(99,102,241,0.35);
+ }
+ :root[data-theme="dark"] {
+ --ag-glass:rgba(18,24,40,0.60); --ag-border:rgba(255,255,255,0.08);
+ --ag-shadow:0 24px 60px -24px rgba(0,0,0,0.75); --ag-ring:rgba(34,211,238,0.35);
+ }
+ html { overflow-x:hidden; }
+ body { position:relative; min-height:100vh; }
+ body::before { content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+ background: radial-gradient(42vw 42vw at 12% 8%, rgba(6,182,212,0.22), transparent 60%),
+ radial-gradient(40vw 40vw at 88% 12%, rgba(168,85,247,0.20), transparent 60%),
+ radial-gradient(46vw 46vw at 70% 92%, rgba(99,102,241,0.20), transparent 62%);
+ filter: blur(10px); animation: agDrift 22s ease-in-out infinite alternate; }
+ :root[data-theme="dark"] body::before { background: radial-gradient(42vw 42vw at 12% 8%, rgba(6,182,212,0.26), transparent 60%),
+ radial-gradient(40vw 40vw at 88% 12%, rgba(168,85,247,0.24), transparent 60%),
+ radial-gradient(46vw 46vw at 70% 92%, rgba(99,102,241,0.26), transparent 62%); }
+ body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+ background-image: linear-gradient(rgba(99,102,241,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.045) 1px, transparent 1px);
+ background-size:44px 44px; -webkit-mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 80%); mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 80%); }
+ @keyframes agDrift { from { transform: translate3d(-2%,-1%,0) scale(1); } to { transform: translate3d(2%,2%,0) scale(1.08); } }
+
+ .navbar, .card, .modal-content {
+ background: var(--ag-glass) !important;
+ -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+ border: 1px solid var(--ag-border) !important; }
+ .card { border-radius:22px !important; box-shadow: var(--ag-shadow), inset 0 1px 0 rgba(255,255,255,0.55) !important; }
+ .modal-content { box-shadow: var(--ag-shadow), inset 0 1px 0 rgba(255,255,255,0.55) !important; }
+ :root[data-theme="dark"] .card, :root[data-theme="dark"] .modal-content { box-shadow: var(--ag-shadow), inset 0 1px 0 rgba(255,255,255,0.06) !important; }
+ .modal-overlay { background: rgba(2,6,20,0.55) !important; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+
+ .navbar h1, h2, h3, .stat-box p { font-family:'Space Grotesk','Plus Jakarta Sans',sans-serif; letter-spacing:.2px; }
+ .navbar h1 { background: linear-gradient(120deg, var(--ag1), var(--ag2) 55%, var(--ag3)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+
+ .nav-tabs button { border-radius:12px; }
+ .nav-tabs button.active { background: linear-gradient(120deg, rgba(6,182,212,0.18), rgba(99,102,241,0.18)) !important;
+ border:1px solid var(--ag-ring) !important; box-shadow: 0 6px 18px -6px var(--ag-ring), inset 0 0 0 1px rgba(255,255,255,0.06); color: var(--text-main) !important; }
+
+ .btn-blue  { background: linear-gradient(120deg,#3b82f6,#6366f1) !important; box-shadow:0 8px 20px -8px rgba(59,130,246,.6); }
+ .btn-green { background: linear-gradient(120deg,#059669,#10b981) !important; box-shadow:0 8px 20px -8px rgba(16,185,129,.6); }
+ .btn-red   { background: linear-gradient(120deg,#e11d48,#f43f5e) !important; box-shadow:0 8px 20px -8px rgba(244,63,94,.55); }
+ .btn-del   { background: linear-gradient(120deg,#334155,#475569) !important; }
+ .btn-action { border-radius:10px; }
+ .btn-action:hover { filter: brightness(1.07); transform: translateY(-1px); }
+
+ input, select, textarea { border-radius:12px; }
+ input:focus, select:focus, textarea:focus { border-color: var(--ag2) !important; box-shadow:0 0 0 3px var(--ag-ring); }
+
+ .stat-box { background: var(--ag-glass) !important; border:1px solid var(--ag-border) !important; border-radius:18px !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+ .stat-box p { font-size:22px !important; background: linear-gradient(120deg, var(--ag1), var(--ag2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+ .stat-box:hover { box-shadow:0 14px 30px -12px var(--ag-ring); transform: translateY(-4px); }
+ .chart-card { background: var(--ag-glass) !important; border:1px solid var(--ag-border) !important; border-radius:18px !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+
+ th { letter-spacing:.4px; }
+ tbody tr:hover { background: linear-gradient(90deg, rgba(99,102,241,0.08), rgba(6,182,212,0.05)) !important; }
+
+ .time-label { background: var(--ag-glass) !important; border:1px solid var(--ag-border) !important; }
+ .slot-item { background: var(--ag-glass) !important; border:1px solid var(--ag-border) !important; border-radius:10px !important; }
+ .slot-booked { box-shadow:0 0 0 1px rgba(16,185,129,.5), 0 8px 18px -8px rgba(16,185,129,.6); }
+
+ #theme-toggle { border-radius:12px !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow:0 6px 16px -8px var(--ag-ring); }
+ .badge { box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+
+ *::-webkit-scrollbar { width:11px; height:11px; }
+ *::-webkit-scrollbar-thumb { background: linear-gradient(var(--ag1), var(--ag2)); border-radius:10px; border:3px solid transparent; background-clip:content-box; }
+ *::-webkit-scrollbar-track { background: transparent; }
+ /* ============================================================
+    PREMIUM — Apple-grade refinement (visual only)
+    ============================================================ */
+ :root { --text-main:#1d1d1f; --text-muted:#6e6e73; --bg-dark:#f5f5f7; }
+ :root[data-theme="dark"] { --text-main:#f5f5f7; --text-muted:#a1a1a6; --bg-dark:#000006; }
+ * { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+ body { font-family:'Inter','Plus Jakarta Sans',system-ui,sans-serif; font-size:14px; line-height:1.5; letter-spacing:-0.003em; }
+ @media (min-width:601px){ body { padding:22px; } }
+ body::before { opacity:.5; animation-duration:34s; }
+
+ .navbar { max-width:1200px; margin:0 auto 30px !important; position:sticky; top:14px; z-index:50; padding:12px 18px !important; border-radius:18px !important; }
+ .navbar h1 { font-family:'Inter','Space Grotesk',sans-serif; font-size:19px !important; font-weight:800 !important; letter-spacing:-0.021em !important; }
+ .nav-tabs button { font-size:12.5px !important; font-weight:600 !important; padding:9px 14px !important; letter-spacing:-0.01em; }
+
+ .container { max-width:1200px !important; }
+ .card { padding:30px !important; margin-bottom:30px !important; border-radius:24px !important; }
+ h2 { font-family:'Inter','Space Grotesk',sans-serif; font-size:22px !important; font-weight:700 !important; letter-spacing:-0.022em !important; padding-bottom:18px !important; }
+ h3 { letter-spacing:-0.012em; }
+
+ label { font-size:11px !important; letter-spacing:.045em !important; color:var(--text-muted) !important; }
+ input, select, textarea { font-size:14px !important; padding:11px 13px !important; }
+
+ .btn-action { font-weight:600 !important; padding:9px 15px !important; letter-spacing:-0.01em; }
+
+ table { font-size:13.5px !important; }
+ th { font-size:10.5px !important; font-weight:600 !important; letter-spacing:.06em !important; text-transform:uppercase; padding:13px 16px !important; }
+ td { padding:15px 16px !important; }
+
+ .stat-box { padding:24px 18px !important; }
+ .stat-box h3 { font-size:10.5px !important; letter-spacing:.06em !important; }
+ .stat-box p { font-size:28px !important; font-weight:700 !important; letter-spacing:-0.025em !important; }
+
+ /* refined entrance (Apple-like ease) */
+ @keyframes agUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+ .navbar { animation: agUp .55s cubic-bezier(.22,.61,.36,1) both; }
+ .stats-grid .stat-box { animation: agUp .6s cubic-bezier(.22,.61,.36,1) both; }
+ .stats-grid .stat-box:nth-child(2){ animation-delay:.05s; }
+ .stats-grid .stat-box:nth-child(3){ animation-delay:.10s; }
+ .stats-grid .stat-box:nth-child(4){ animation-delay:.15s; }
+ .stats-grid .stat-box:nth-child(5){ animation-delay:.20s; }
+ .stats-grid .stat-box:nth-child(6){ animation-delay:.25s; }
+ @media (prefers-reduced-motion: reduce){ .navbar, .stats-grid .stat-box { animation:none !important; } }
+ /* ===== Fit viewport — no horizontal overflow (desktop & mobile) ===== */
+ *, *::before, *::after { box-sizing: border-box; }
+ html { overflow-x: clip; }
+ html, body { max-width: 100%; }
+ .container, .navbar { width: 100%; }
+ .table-container { max-width: 100%; }
+ td, th { overflow-wrap: anywhere; }
+ .stat-box p { overflow-wrap: anywhere; font-size: clamp(18px, 4.6vw, 28px) !important; }
+ @media (max-width: 600px){
+ .navbar { top: 8px; }
+ .stat-box p { font-size: clamp(16px, 6.5vw, 24px) !important; }
+ }
+ /* ===== רוחב מלא + תיקון שבירת מספרים בסטטיסטיקה (final) ===== */
+ .navbar, .container { max-width: min(1700px, 100%) !important; }
+ .stat-box p { overflow-wrap: normal !important; word-break: keep-all !important; white-space: nowrap !important; font-size: clamp(15px, 1.5vw, 26px) !important; }
+ @media (max-width: 600px){ .stat-box p { font-size: clamp(15px, 5.5vw, 22px) !important; } }
+ /* ===== v3: tables fit (no header wrap), toggle switch, notice board, filters ===== */
+ .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+ th { white-space: nowrap !important; overflow-wrap: normal !important; word-break: keep-all !important; }
+ td { overflow-wrap: normal; }
+ .filter-bar { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+ .filter-bar .form-group { max-width:180px; margin:0; }
+ .quick-range { display:flex; gap:6px; flex-wrap:wrap; }
+ .switch { position:relative; display:inline-block; width:40px; height:22px; flex:0 0 auto; }
+ .switch input { opacity:0; width:0; height:0; }
+ .switch .slider { position:absolute; inset:0; cursor:pointer; background:rgba(100,116,139,0.45); border-radius:999px; transition:.25s; }
+ .switch .slider:before { content:''; position:absolute; height:16px; width:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.25s; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+ .switch input:checked + .slider { background:linear-gradient(120deg, var(--accent-cyan), var(--accent-blue)); }
+ .switch input:checked + .slider:before { transform:translateX(18px); }
+ .switch-wrap { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-muted); cursor:pointer; }
+ .notice-board { border:none !important; border-radius:16px !important; background:linear-gradient(135deg, rgba(6,182,212,0.10), rgba(59,130,246,0.08)) !important; box-shadow:0 8px 24px -14px rgba(6,182,212,0.5); }
+ .notice-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+ .notice-title { font-size:13px; font-weight:800; background:linear-gradient(120deg,var(--accent-cyan),var(--accent-blue)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; display:flex; align-items:center; gap:6px; }
+ .notice-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 11px; margin-bottom:6px; background:rgba(255,255,255,0.55); border:1px solid var(--card-border); border-radius:12px; flex-wrap:wrap; }
+ :root[data-theme="dark"] .notice-row { background:rgba(255,255,255,0.04); }
+ .notice-pill { font-weight:700; font-size:11px; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+ @media (max-width:600px){ .filter-bar .form-group { max-width:none; flex:1 1 120px; } }
+ /* ===== v3.1: stat numbers fit, widget hide/show, chart notes, legend ===== */
+ .stats-grid { grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)) !important; }
+ .stat-box { position: relative; overflow: visible; }
+ .stat-box p { white-space: nowrap; overflow: visible; letter-spacing: 0 !important; font-size: clamp(14px, 1.15vw, 20px) !important; }
+ .chart-card { position: relative; }
+ .chart-note { font-size: 10.5px; line-height: 1.4; color: var(--text-muted); margin: -2px 0 10px; font-weight: 500; }
+ .wtoggle { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(100,116,139,0.18); color: var(--text-muted); font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; opacity: 0; transition: opacity .15s ease, background .15s ease; z-index: 3; }
+ .stat-box:hover .wtoggle, .chart-card:hover .wtoggle { opacity: 1; }
+ .wtoggle:hover { background: var(--accent-red); color: #fff; }
+ .widget-hidden { display: none !important; }
+ .stats-legend { background: linear-gradient(135deg, rgba(6,182,212,0.08), rgba(99,102,241,0.06)); border: 1px solid var(--card-border); border-radius: 14px; margin: 0 0 14px; }
+ .stats-legend summary { cursor: pointer; padding: 12px 14px; font-weight: 800; font-size: 12px; color: var(--accent-cyan); list-style: none; }
+ .stats-legend summary::-webkit-details-marker { display: none; }
+ .stats-legend .legend-body { padding: 2px 16px 14px; font-size: 11.5px; line-height: 1.7; color: var(--text-muted); }
+ .stats-legend .legend-body b { color: var(--text-main, inherit); }
+ .cust-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13px; border-bottom: 1px solid var(--card-border); cursor: pointer; }
+ .cust-row input { width: 16px; height: 16px; flex: 0 0 auto; }
  </style>
 </head>
 <body>
@@ -186,10 +355,10 @@
  <div class="form-group" style="justify-content:flex-end;"><button class="btn-action btn-red" style="height:40px;" onclick="saveSlotBlock()">🚫 Save Block</button></div>
  </div>
  <!-- (6) 7-day notice board: upcoming payments and expenses -->
- <div id="upcoming-board" style="margin:14px 0; padding:12px; border:1px solid var(--card-border); border-radius:12px; background:rgba(6,182,212,0.06);">
+ <div id="upcoming-board" class="notice-board" style="margin:14px 0; padding:14px;">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
-   <div style="font-size:13px; font-weight:800; color:var(--accent-cyan);">🔔 7-Day Notice Board — Upcoming Payments & Expenses</div>
-   <label style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="show-hidden-alerts" onchange="loadUpcoming()"> Show hidden alerts <span id="hidden-alerts-count"></span></label>
+   <div class="notice-title">🔔 7-Day Notice Board — Upcoming Payments & Expenses</div>
+   <label class="switch-wrap"><span class="switch"><input type="checkbox" id="show-hidden-alerts" onchange="loadUpcoming()"><span class="slider"></span></span><span>Show hidden alerts <span id="hidden-alerts-count"></span></span></label>
   </div>
  <div id="upcoming-list" style="font-size:12px; color:var(--text-muted);">Loading…</div>
  </div>
@@ -232,6 +401,15 @@
  <!-- TAB 2: ACTIVE STUDENTS -->
  <div id="students-tab" class="tab-content card" style="display:none;">
  <h2><span>🎓 Active Students</span><span style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button><button class="btn-action btn-green" onclick="openSetupPaymentPlan()">💳 Setup Payment Plan</button></span></h2>
+ <div class="filter-bar">
+ <div class="form-group"><label>Search</label><input type="text" id="fs-search" placeholder="Name…" oninput="renderStudentsTable()"></div>
+ <div class="form-group"><label>Payment</label><select id="fs-pay" onchange="renderStudentsTable()"><option value="all">All</option><option value="paid">Paid in full</option><option value="owes">Owes money</option></select></div>
+ <div class="form-group"><label>Lessons</label><select id="fs-lessons" onchange="renderStudentsTable()"><option value="all">All</option><option value="done">Completed all</option><option value="progress">In progress</option></select></div>
+ <div class="form-group"><label>Time / Validity</label><select id="fs-time" onchange="renderStudentsTable()"><option value="all">All</option><option value="expired">Expired</option><option value="near">Near limit (≥90%)</option></select></div>
+ <div class="form-group"><label>Course</label><select id="fs-course" onchange="renderStudentsTable()"><option value="all">All</option></select></div>
+ <button class="btn-action btn-del" onclick="clearStudentFilters()">Clear</button>
+ <span id="fs-count" style="font-size:11px; color:var(--text-muted); align-self:center;"></span>
+ </div>
  <div class="table-container">
  <table>
  <thead><tr><th>Name</th><th>Course</th><th>Progress</th><th>Validity</th><th>Amount / Owed</th><th>Actions</th></tr></thead>
@@ -256,7 +434,7 @@
  <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
  <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="inv-from" onchange="renderInvoices()"></div>
  <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="inv-to" onchange="renderInvoices()"></div>
- <button class="btn-action btn-del" onclick="document.getElementById('inv-from').value='';document.getElementById('inv-to').value='';renderInvoices()">Clear</button>
+ <button class="btn-action btn-del" onclick="document.getElementById('inv-from').value='';document.getElementById('inv-to').value='';renderInvoices()">Clear</button><div class="quick-range" style="margin-left:auto;"><button onclick="setInvRange('month')">This Month</button><button onclick="setInvRange('30d')">Last 30d</button><button onclick="setInvRange('6m')">Last 6M</button><button onclick="setInvRange('1y')">Last Year</button><button onclick="setInvRange('year')">This Year</button><button onclick="setInvRange('all')">All Time</button></div>
  </div>
  <div class="table-container">
  <table>
@@ -273,7 +451,7 @@
  <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
  <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="exp-from" onchange="renderExpenses()"></div>
  <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="exp-to" onchange="renderExpenses()"></div>
- <button class="btn-action btn-del" onclick="document.getElementById('exp-from').value='';document.getElementById('exp-to').value='';renderExpenses()">Clear</button>
+ <button class="btn-action btn-del" onclick="document.getElementById('exp-from').value='';document.getElementById('exp-to').value='';renderExpenses()">Clear</button><div class="quick-range" style="margin-left:auto;"><button onclick="setExpRange('month')">This Month</button><button onclick="setExpRange('30d')">Last 30d</button><button onclick="setExpRange('6m')">Last 6M</button><button onclick="setExpRange('1y')">Last Year</button><button onclick="setExpRange('year')">This Year</button><button onclick="setExpRange('all')">All Time</button></div>
  </div>
  <div class="table-container">
  <table>
@@ -294,9 +472,28 @@
  <div class="quick-range" style="margin-left:auto;">
  <button onclick="setStatsRange('month')">This Month</button>
  <button onclick="setStatsRange('year')">This Year</button>
+ <button onclick="setStatsRange('30d')">Last 30d</button>
+ <button onclick="setStatsRange('6m')">Last 6M</button>
+ <button onclick="setStatsRange('1y')">Last Year</button>
  <button onclick="setStatsRange('12m')">Last 12 Months</button>
  <button onclick="setStatsRange('all')">All Time</button>
  </div>
+ </div>
+ <details class="stats-legend">
+ <summary>ℹ️ How to read this page (ranges, sums, averages, forecast)</summary>
+ <div class="legend-body">
+ • <b>Date range</b> (From/To or the quick buttons) filters <b>income by invoice date</b> and <b>expenses by expense date</b>. It controls the financial cards and the <b>Monthly</b>, <b>Cumulative</b> and <b>Forecast</b> charts.<br>
+ • <b>Student cards &amp; charts</b> (Active Students, Avg Revenue/Student, Collection Rate, Lessons Delivered, Total Students Owed, Course Type, Completion, Validity, Debts) show the <b>current state</b> and <b>ignore the date range</b>.<br>
+ • <b>Sums:</b> Total Income, Total Expenses, Net Profit, Total Students Owed, Lessons Delivered.<br>
+ • <b>Averages:</b> Avg Monthly Revenue = Total Income ÷ number of months in range. Avg Revenue/Student = Total Income in range ÷ active students.<br>
+ • <b>Percentages:</b> Net Profit Margin = Net Profit ÷ Total Income. Collection Rate = total received ÷ total billed to active students.<br>
+ • <b>Forecast</b> = the average income of the last 3 months in range, projected forward 3 months (dashed line).<br>
+ • Hover any card or chart and click ✕ to hide it; use <b>Customize widgets</b> to bring hidden ones back.
+ </div>
+ </details>
+ <div style="margin-bottom:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+ <button class="btn-action btn-blue" onclick="openCustomize()">⚙️ Customize widgets</button>
+ <span id="customize-count" style="font-size:11px; color:var(--text-muted);"></span>
  </div>
  <div class="stats-grid">
  <div class="stat-box"><h3>Total Income</h3><p id="st-total-income" style="color:var(--accent-green);">₪0.00</p></div>
@@ -305,6 +502,10 @@
  <div class="stat-box"><h3>Net Profit Margin</h3><p id="st-net-margin" style="color:var(--accent-blue);">—</p></div>
  <div class="stat-box"><h3>Avg Monthly Revenue</h3><p id="st-avg-income" style="color:var(--accent-green);">₪0.00</p></div>
  <div class="stat-box"><h3>Total Students Owed</h3><p id="st-total-owed" style="color:var(--accent-orange);">₪0.00</p></div>
+ <div class="stat-box"><h3>Active Students</h3><p id="st-active-students" style="color:var(--accent-blue);">0</p></div>
+ <div class="stat-box"><h3>Avg Revenue / Student</h3><p id="st-avg-student" style="color:var(--accent-green);">₪0.00</p></div>
+ <div class="stat-box"><h3>Collection Rate</h3><p id="st-collection" style="color:var(--accent-cyan);">—</p></div>
+ <div class="stat-box"><h3>Lessons Delivered</h3><p id="st-lessons-done" style="color:var(--accent-blue);">0</p></div>
  </div>
  <div class="chart-card" style="margin-top:18px;">
  <h3>Income vs Expenses & Net Profit — by Month</h3>
@@ -315,8 +516,33 @@
  <div class="chart-card"><h3>Expenses by Category</h3><div class="chart-wrap"><canvas id="chart-expcats"></canvas></div></div>
  <div class="chart-card"><h3>Top Students by Revenue</h3><div class="chart-wrap"><canvas id="chart-topstudents"></canvas></div></div>
  </div>
+ <div class="chart-card" style="margin-top:18px;"><h3>Cumulative Net Profit</h3><div class="chart-wrap" style="height:260px;"><canvas id="chart-cumulative"></canvas></div></div>
+ <div class="chart-card" style="margin-top:18px;"><h3>Revenue — Actual & 3-Month Forecast</h3><div class="chart-wrap" style="height:260px;"><canvas id="chart-forecast"></canvas></div></div>
+ <div class="charts-grid">
+ <div class="chart-card"><h3>Students by Course Type</h3><div class="chart-wrap"><canvas id="chart-coursetype"></canvas></div></div>
+ <div class="chart-card"><h3>Lesson Completion Distribution</h3><div class="chart-wrap"><canvas id="chart-completion"></canvas></div></div>
+ <div class="chart-card"><h3>Validity Status</h3><div class="chart-wrap"><canvas id="chart-validity"></canvas></div></div>
+ </div>
+ <div class="charts-grid">
+ <div class="chart-card"><h3>Top Open Debts</h3><div class="chart-wrap"><canvas id="chart-debts"></canvas></div></div>
+ <div class="chart-card"><h3>Slot Utilization by Weekday</h3><div class="chart-wrap"><canvas id="chart-weekday"></canvas></div></div>
+ <div class="chart-card"><h3>Peak Booking Hours</h3><div class="chart-wrap"><canvas id="chart-hours"></canvas></div></div>
+ </div>
  </div>
 
+</div>
+
+<!-- Customize Widgets Modal -->
+<div class="modal-overlay" id="customize-modal" style="display:none;">
+ <div class="modal-content" style="text-align:left; max-width:460px;">
+ <h3 style="margin-bottom:6px;">⚙️ Customize Widgets</h3>
+ <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Uncheck to hide a card or chart; check to bring it back. Saved on this device.</p>
+ <div id="customize-list" style="max-height:360px; overflow-y:auto; margin-bottom:12px;"></div>
+ <div style="display:flex; gap:8px;">
+ <button class="btn-action btn-del" style="flex:1; padding:10px;" onclick="resetWidgets()">Show all</button>
+ <button class="btn-action btn-green" style="flex:1; padding:10px;" onclick="closeModal('customize-modal')">Done</button>
+ </div>
+ </div>
 </div>
 
 <!-- Reset Week Modal -->
@@ -477,12 +703,12 @@
  <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Add categories and pick a color. Existing records using a category automatically sync to its color.</p>
  <div class="table-container" style="max-height:300px; overflow-y:auto;">
  <table>
- <thead><tr><th>Color</th><th>Name</th><th>Actions</th></tr></thead>
+ <thead><tr><th>Bg</th><th>Text</th><th>Name</th><th>Actions</th></tr></thead>
  <tbody id="cat-manager-list"></tbody>
  </table>
  </div>
  <div style="display:flex; gap:6px; align-items:center; margin-top:12px;">
- <input type="color" id="cat-new-color" value="#64748b" style="width:46px; min-height:40px; padding:2px;">
+ <input type="color" id="cat-new-color" title="Background" value="#64748b" style="width:46px; min-height:40px; padding:2px;"><input type="color" id="cat-new-text-color" title="Text color" value="#ffffff" style="width:46px; min-height:40px; padding:2px;">
  <input type="text" id="cat-new-name" placeholder="New category name" style="flex:1;">
  <button class="btn-action btn-green" onclick="addCatFromManager()">➕ Add</button>
  </div>
@@ -539,6 +765,8 @@
  let allExpenses = [];
  let allCategories = [];
  let catColorMap = {};
+ let catTextColorMap = {};
+ let allHistory = [];
  let selectedBookingSlot = null;
  let editingInvoiceId = null;
  let editingExpenseId = null;
@@ -628,8 +856,10 @@
  await loadInvoices();
  await loadExpenses();
  await loadStudents();
+ await loadHistoryForStats();
  loadCalendarView();
  initSortableTables();
+ initWidgetControls();
  }
 
  async function loadCategories() {
@@ -637,8 +867,8 @@
  const res = await apiFetch('/api/admin/categories');
  const data = await res.json();
  allCategories = data.categories || [];
- catColorMap = {};
- allCategories.forEach(c => { catColorMap[c.type + ':' + c.name] = c.color || '#64748b'; });
+ catColorMap = {}; catTextColorMap = {};
+ allCategories.forEach(c => { catColorMap[c.type + ':' + c.name] = c.color || '#64748b'; catTextColorMap[c.type + ':' + c.name] = c.text_color || '#ffffff'; });
  const courseSel = document.getElementById('m_student_course');
  const paySel = document.getElementById('i_method');
  const expCatSel = document.getElementById('e_category');
@@ -646,7 +876,7 @@
  paySel.innerHTML = '<option value="Credit Card">Credit Card</option><option value="Bank Transfer">Bank Transfer</option>';
  expCatSel.innerHTML = '<option value="Tools">Tools</option><option value="Ads">Ads</option>';
  allCategories.forEach(c => {
- const opt = `<option value="${c.name}" data-id="${c.id}" data-color="${c.color || '#64748b'}">${c.name}</option>`;
+ const opt = `<option value="${c.name}" data-id="${c.id}" data-color="${c.color || '#64748b'}" data-text-color="${c.text_color || '#ffffff'}">${c.name}</option>`;
  if (c.type === 'course_type') courseSel.innerHTML += opt;
  if (c.type === 'payment_method') paySel.innerHTML += opt;
  if (c.type === 'expense_category') expCatSel.innerHTML += opt;
@@ -659,6 +889,7 @@
  }
 
  function colorForCat(type, name) { return (name && catColorMap[type + ':' + name]) || '#64748b'; }
+ function textColorForCat(type, name) { return (name && catTextColorMap[type + ':' + name]) || '#ffffff'; }
 
  function syncCatColor(type) {
  const selId = type === 'payment_method' ? 'i_method' : 'e_category';
@@ -686,6 +917,7 @@
  const titles = { payment_method: 'Payment Method Categories', expense_category: 'Expense Categories', course_type: 'Course Types' };
  document.getElementById('cat-manager-title').innerText = titles[type] || 'Categories';
  document.getElementById('cat-new-color').value = '#64748b';
+ document.getElementById('cat-new-text-color').value = '#ffffff';
  document.getElementById('cat-new-name').value = '';
  renderCatManager();
  document.getElementById('cat-manager-modal').style.display = 'flex';
@@ -702,17 +934,17 @@
  else if (type === 'course_type') dataVals = allStudents.map(s => s.course_type);
  dataVals = [...new Set(dataVals.filter(v => v && !seen.has(v)))];
  const union = [
- ...dbRows.map(c => ({ id: c.id, name: c.name, color: c.color || '#64748b', registered: true })),
- ...dataVals.map(n => ({ id: null, name: n, color: colorForCat(type, n), registered: false }))
+ ...dbRows.map(c => ({ id: c.id, name: c.name, color: c.color || '#64748b', text_color: c.text_color || '#ffffff', registered: true })),
+ ...dataVals.map(n => ({ id: null, name: n, color: colorForCat(type, n), text_color: textColorForCat(type, n), registered: false }))
  ];
  tbody.innerHTML = '';
- if (!union.length) { tbody.innerHTML = '<tr><td colspan=\"3\" style=\"color:var(--text-muted); font-size:12px;\">No categories yet.</td></tr>'; return; }
+ if (!union.length) { tbody.innerHTML = '<tr><td colspan=\"4\" style=\"color:var(--text-muted); font-size:12px;\">No categories yet.</td></tr>'; return; }
  union.forEach(c => {
  const safeName = (c.name || '').replace(/'/g, '').replace(/\"/g, '');
  const idArg = c.id === null ? 'null' : c.id;
  const fromData = c.registered ? '' : ' <span style=\"font-size:10px; color:var(--text-muted);\">(from data)</span>';
  const delBtn = c.id === null ? '' : `<button class=\"btn-action btn-red\" onclick=\"deleteCatById(${c.id})\">🗑️</button>`;
- tbody.innerHTML += `<tr><td><input type=\"color\" value=\"${c.color}\" style=\"width:42px; min-height:34px; padding:2px;\" onchange=\"saveCatColor2('${type}', '${safeName}', ${idArg}, this.value)\"></td><td><span class=\"badge\" style=\"background:${c.color}; color:#fff;\">${c.name}</span>${fromData}</td><td>${delBtn}</td></tr>`;
+ tbody.innerHTML += `<tr><td><input type=\"color\" class=\"cat-bg\" value=\"${c.color}\" style=\"width:42px; min-height:34px; padding:2px;\" onchange=\"saveCatRow('${type}', '${safeName}', ${idArg}, this)\"></td><td><input type=\"color\" class=\"cat-tc\" value=\"${c.text_color}\" style=\"width:42px; min-height:34px; padding:2px;\" onchange=\"saveCatRow('${type}', '${safeName}', ${idArg}, this)\"></td><td><span class=\"badge\" style=\"background:${c.color}; color:${c.text_color};\">${c.name}</span>${fromData}</td><td>${delBtn}</td></tr>`;
  });
  }
  async function saveCatColor2(type, name, id, color) {
@@ -724,6 +956,19 @@
  }
  if (res && res.ok) { await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
  else alert('Failed to save color.');
+ }
+ async function saveCatRow(type, name, id, inputEl) {
+ const row = inputEl.closest('tr');
+ const color = row.querySelector('.cat-bg').value;
+ const textColor = row.querySelector('.cat-tc').value;
+ let res;
+ if (id === null || id === undefined) {
+ res = await apiFetch('/api/admin/categories/add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, name, color, text_color: textColor }) });
+ } else {
+ res = await apiFetch('/api/admin/categories/color', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, color, text_color: textColor }) });
+ }
+ if (res && res.ok) { await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
+ else alert('Failed to save colors.');
  }
 
  function _cellSortVal(row, idx) {
@@ -789,9 +1034,10 @@
  async function addCatFromManager() {
  const name = (document.getElementById('cat-new-name').value || '').trim();
  const color = document.getElementById('cat-new-color').value || '#64748b';
+ const textColor = document.getElementById('cat-new-text-color').value || '#ffffff';
  if (!name) return alert('Enter a category name.');
- const res = await apiFetch('/api/admin/categories/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: currentCatType, name, color }) });
- if (res.ok) { document.getElementById('cat-new-name').value = ''; document.getElementById('cat-new-color').value = '#64748b'; await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
+ const res = await apiFetch('/api/admin/categories/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: currentCatType, name, color, text_color: textColor }) });
+ if (res.ok) { document.getElementById('cat-new-name').value = ''; document.getElementById('cat-new-color').value = '#64748b'; document.getElementById('cat-new-text-color').value = '#ffffff'; await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
  else alert('Failed to add category.');
  }
  async function saveCatColorById(id, color) {
@@ -834,52 +1080,102 @@
  allStudents = data.students || [];
  populateWeeklyStudents();
  loadBookingStatus();
- const tbody = document.getElementById('students-table-body');
- const pastTbody = document.getElementById('past-students-table-body');
  const invSelect = document.getElementById('i_student_select');
- tbody.innerHTML = ''; pastTbody.innerHTML = ''; invSelect.innerHTML = '';
- let totalOwed = 0;
- allStudents.forEach(s => {
- invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+ if (invSelect) { invSelect.innerHTML=''; allStudents.forEach(s => { invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`; }); }
+ populateCourseFilter();
+ renderStudentsTable();
+ } catch(e) {}
+ }
+
+ // ממלא את רשימת סוגי הקורס בפילטר התלמידים מתוך הנתונים הקיימים
+ function populateCourseFilter() {
+ const sel = document.getElementById('fs-course');
+ if (!sel) return;
+ const cur = sel.value;
+ const types = [...new Set(allStudents.map(s => s.course_type).filter(Boolean))];
+ sel.innerHTML = '<option value="all">All</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+ if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+ }
+
+ function clearStudentFilters() {
+ ['fs-search'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+ ['fs-pay','fs-lessons','fs-time','fs-course'].forEach(id => { const el=document.getElementById(id); if (el) el.value='all'; });
+ renderStudentsTable();
+ }
+
+ // מחשב לכל תלמיד נתונים נגזרים (חוב, אחוז התקדמות, סטטוס תוקף) ומחזיר אובייקט
+ function _studentDerived(s) {
  const studentPayed = allInvoices.filter(i => i.student_name === s.name).reduce((sum, i) => sum + Number(i.amount_payed), 0);
  const owed = Math.max(0, Number(s.total_amount || 0) - studentPayed);
  const total = Number(s.total_lessons || 0);
  const done = Number(s.completed_lessons || 0);
  const pct = total > 0 ? Math.round(done / total * 100) : 0;
- const progressHtml = `<div style="display:flex; align-items:center; gap:8px;"><div style="flex:1; min-width:70px;"><div style="font-size:11px; margin-bottom:3px;">${done}/${total} (${pct}%)</div><div style="height:6px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, pct)}%; background:var(--accent-cyan);"></div></div></div><button class="btn-action btn-green" style="padding:3px 7px; font-size:11px; white-space:nowrap;" onclick="completeLesson(${s.id})">✔️ +Lesson</button></div>`;
+ let expired = false, tpct = 0;
+ if (s.validity_expiration_date) {
+ const exp = new Date(s.validity_expiration_date.substring(0,10));
+ const today = new Date(); today.setHours(0,0,0,0);
+ expired = exp < today && done < total;
+ if (s.start_date) {
+ const start = new Date(s.start_date.substring(0,10));
+ const span = exp - start;
+ if (span > 0) tpct = Math.max(0, Math.round((today - start) / span * 100));
+ }
+ }
+ const paidOff = Number(s.total_amount || 0) > 0 && owed === 0;
+ return { studentPayed, owed, total, done, pct, expired, tpct, paidOff };
+ }
+
+ function _passStudentFilters(s, d) {
+ const q = (document.getElementById('fs-search')||{}).value || '';
+ const pay = (document.getElementById('fs-pay')||{}).value || 'all';
+ const les = (document.getElementById('fs-lessons')||{}).value || 'all';
+ const tim = (document.getElementById('fs-time')||{}).value || 'all';
+ const crs = (document.getElementById('fs-course')||{}).value || 'all';
+ if (q && !(s.name||'').toLowerCase().includes(q.toLowerCase())) return false;
+ if (pay==='paid' && !d.paidOff) return false;
+ if (pay==='owes' && d.owed <= 0) return false;
+ if (les==='done' && !(d.total>0 && d.done>=d.total)) return false;
+ if (les==='progress' && !(d.done < d.total)) return false;
+ if (tim==='expired' && !d.expired) return false;
+ if (tim==='near' && !(d.tpct>=90 && !d.expired)) return false;
+ if (crs!=='all' && (s.course_type||'') !== crs) return false;
+ return true;
+ }
+
+ function renderStudentsTable() {
+ const tbody = document.getElementById('students-table-body');
+ const pastTbody = document.getElementById('past-students-table-body');
+ if (!tbody) return;
+ tbody.innerHTML = ''; if (pastTbody) pastTbody.innerHTML = '';
+ let totalOwed = 0, shown = 0;
+ allStudents.forEach(s => {
+ const d = _studentDerived(s);
+ const progressHtml = `<div style="display:flex; align-items:center; gap:8px;"><div style="flex:1; min-width:70px;"><div style="font-size:11px; margin-bottom:3px;">${d.done}/${d.total} (${d.pct}%)</div><div style="height:6px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, d.pct)}%; background:var(--accent-cyan);"></div></div></div><button class="btn-action btn-green" style="padding:3px 7px; font-size:11px; white-space:nowrap;" onclick="completeLesson(${s.id})">\u2714\ufe0f +Lesson</button></div>`;
  let validityHtml = '<span style="color:var(--text-muted);">-</span>';
  if (s.validity_expiration_date) {
  const dateStr = s.validity_expiration_date.substring(0, 10);
- const exp = new Date(dateStr);
- const today = new Date(); today.setHours(0, 0, 0, 0);
- const expired = exp < today && done < total;
- // (3) Validity progress: elapsed share of the validity window (from start date to expiry date)
  let timeBar = '';
- if (s.start_date) {
- const start = new Date(s.start_date.substring(0, 10));
- const span = exp - start;
- if (span > 0) {
- const tpct = Math.max(0, Math.round((today - start) / span * 100));
- const tcolor = tpct >= 90 ? 'var(--accent-red)' : 'var(--accent-cyan)';
- timeBar = `<div style="font-size:10px; margin:4px 0 2px;">⏳ ${tpct}% time</div><div style="height:5px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, tpct)}%; background:${tcolor};"></div></div>`;
+ if (s.start_date && d.tpct >= 0 && (new Date(dateStr) - new Date(s.start_date.substring(0,10))) > 0) {
+ const tcolor = d.tpct >= 90 ? 'var(--accent-red)' : 'var(--accent-cyan)';
+ timeBar = `<div style="font-size:10px; margin:4px 0 2px;">\u23f3 ${d.tpct}% time</div><div style="height:5px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, d.tpct)}%; background:${tcolor};"></div></div>`;
  }
+ validityHtml = (d.expired
+ ? `<span class="badge" style="background:var(--accent-red);">\ud83d\udd34 Expired</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`
+ : `<span class="badge badge-paid">\ud83d\udfe2 Active</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`) + timeBar;
  }
- validityHtml = (expired
- ? `<span class="badge" style="background:var(--accent-red);">🔴 Expired</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`
- : `<span class="badge badge-paid">🟢 Active</span><br><span style="font-size:10px; color:var(--text-muted);">${dateStr}</span>`) + timeBar;
+ const rowStyle = d.paidOff ? ' style="background:#064e3b; color:#fff;"' : '';
+ const owedHtml = d.paidOff ? `\u20aa${_nf(s.total_amount || 0)} (<strong>Paid in full</strong>)` : `\u20aa${_nf(s.total_amount || 0)} (Owed: <strong>\u20aa${_nf(d.owed)}</strong>)`;
+ const courseBadge = `<span class="badge" style="background:${colorForCat('course_type', s.course_type)}; color:${textColorForCat('course_type', s.course_type)};">${s.course_type || 'Beg'}</span>`;
+ const rowHtml = `<tr${rowStyle}><td><strong>${s.name}</strong></td><td>${courseBadge}</td><td data-sort="${d.pct}">${progressHtml}</td><td data-sort="${s.validity_expiration_date ? s.validity_expiration_date.substring(0,10) : ''}">${validityHtml}</td><td data-sort="${d.owed}">${owedHtml}</td><td><div style="display:flex; flex-wrap:wrap; gap:4px;"><button class="btn-action btn-ltgreen" onclick="openStudentModal(${s.id})">\u270f\ufe0f Edit</button> <button class="btn-action btn-ltyellow" onclick="openPaymentHistory('${(s.name||'').replace(/'/g,"")}')">\ud83d\udcdc Payment History</button></div></td></tr>`;
+ if (s.is_past_student) { if (pastTbody) pastTbody.innerHTML += rowHtml; }
+ else {
+ if (!_passStudentFilters(s, d)) return;
+ totalOwed += d.owed; shown++;
+ tbody.innerHTML += rowHtml;
  }
- const paidOff = Number(s.total_amount || 0) > 0 && owed === 0;
- const rowStyle = paidOff ? ' style="background:#064e3b; color:#fff;"' : '';
- const owedHtml = paidOff ? `₪${s.total_amount || 0} (<strong>Paid in full</strong>)` : `₪${s.total_amount || 0} (Owed: <strong>₪${owed}</strong>)`;
- // תג הקורס נצבע לפי צבע הקטגוריה שהוגדר במנהל הקטגוריות (ברירת מחדל אפור ניטרלי)
- const courseBadge = `<span class="badge" style="background:${colorForCat('course_type', s.course_type)}; color:#fff;">${s.course_type || 'Beg'}</span>`;
- const rowHtml = `<tr${rowStyle}><td><strong>${s.name}</strong></td><td>${courseBadge}</td><td data-sort="${pct}">${progressHtml}</td><td data-sort="${s.validity_expiration_date ? s.validity_expiration_date.substring(0,10) : ''}">${validityHtml}</td><td data-sort="${owed}">${owedHtml}</td><td><div style="display:flex; flex-wrap:wrap; gap:4px;"><button class="btn-action btn-ltgreen" onclick="openStudentModal(${s.id})">✏️ Edit</button> <button class="btn-action btn-ltyellow" onclick="openPaymentHistory('${(s.name||'').replace(/'/g,"")}')">📜 Payment History</button></div></td></tr>`;
- // past ו-active מקבלים בדיוק את אותן עמודות ואפשרויות
- if (s.is_past_student) { pastTbody.innerHTML += rowHtml; }
- else { totalOwed += owed; tbody.innerHTML += rowHtml; }
  });
- document.getElementById('st-total-owed').innerText = '₪' + totalOwed.toFixed(2);
- } catch(e) {}
+ const owedEl = document.getElementById('st-total-owed'); if (owedEl) owedEl.innerText = '\u20aa' + _nf(totalOwed);
+ const cnt = document.getElementById('fs-count'); if (cnt) cnt.innerText = shown + ' shown';
  }
 
  async function deleteStudent(id, name) {
@@ -926,6 +1222,22 @@
  if (to && d > to) return false;
  return true;
  }
+ // טווחי תאריכים מוכנים: מחזיר {from,to} בפורמט YYYY-MM-DD לפי בחירה
+ function rangeDates(kind){
+ const today = new Date();
+ const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ let from='', to='';
+ if (kind==='month'){ from=fmt(new Date(today.getFullYear(), today.getMonth(), 1)); to=fmt(new Date(today.getFullYear(), today.getMonth()+1, 0)); }
+ else if (kind==='30d'){ const d=new Date(today); d.setDate(d.getDate()-29); from=fmt(d); to=fmt(today); }
+ else if (kind==='6m'){ from=fmt(new Date(today.getFullYear(), today.getMonth()-5, 1)); to=fmt(today); }
+ else if (kind==='1y'){ const d=new Date(today); d.setFullYear(d.getFullYear()-1); from=fmt(d); to=fmt(today); }
+ else if (kind==='12m'){ from=fmt(new Date(today.getFullYear(), today.getMonth()-11, 1)); to=fmt(today); }
+ else if (kind==='year'){ from=fmt(new Date(today.getFullYear(), 0, 1)); to=fmt(new Date(today.getFullYear(), 11, 31)); }
+ else { from=''; to=''; } // all time
+ return { from, to };
+ }
+ function setInvRange(kind){ const r=rangeDates(kind); const a=document.getElementById('inv-from'), b=document.getElementById('inv-to'); if(a)a.value=r.from; if(b)b.value=r.to; renderInvoices(); }
+ function setExpRange(kind){ const r=rangeDates(kind); const a=document.getElementById('exp-from'), b=document.getElementById('exp-to'); if(a)a.value=r.from; if(b)b.value=r.to; renderExpenses(); }
 
  function renderInvoices() {
  const from = (document.getElementById('inv-from')||{}).value || '';
@@ -936,7 +1248,7 @@
  const amt = Number(i.amount_payed || 0);
  const color = amt < 0 ? 'var(--accent-red)' : 'var(--accent-green)';
  const refundTag = i.is_refund ? ' <span class="badge badge-pending">Refund</span>' : '';
- tbody.innerHTML += `<tr><td><strong>${i.invoice_number || '-'}</strong>${refundTag}</td><td>${i.student_name || '-'}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.period_covered || '-'}</td><td>${i.payment_method ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorForCat('payment_method', i.payment_method)};margin-right:6px;vertical-align:middle;"></span>${i.payment_method}` : '-'}</td><td>${i.reference_number || '-'}</td><td>${i.transaction_id || '-'}</td><td>${i.payment_number || '-'}</td><td style="max-width:160px; white-space:normal; font-size:11px;">${i.notes || ''}</td><td style="color:${color}; font-weight:bold;" data-sort="${amt}">₪${amt}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editInvoice(${i.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteInvoice(${i.id})">🗑️</button></td></tr>`;
+ tbody.innerHTML += `<tr><td><strong>${i.invoice_number || '-'}</strong>${refundTag}</td><td>${i.student_name || '-'}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.period_covered || '-'}</td><td>${i.payment_method ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorForCat('payment_method', i.payment_method)};margin-right:6px;vertical-align:middle;"></span>${i.payment_method}` : '-'}</td><td>${i.reference_number || '-'}</td><td>${i.transaction_id || '-'}</td><td>${i.payment_number || '-'}</td><td style="max-width:160px; white-space:normal; font-size:11px;">${i.notes || ''}</td><td style="color:${color}; font-weight:bold;" data-sort="${amt}">₪${_nf(amt)}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editInvoice(${i.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteInvoice(${i.id})">🗑️</button></td></tr>`;
  });
  }
 
@@ -958,23 +1270,18 @@
  allExpenses.filter(e => inRange(e.expense_date, from, to)).forEach(e => {
  const orig = (e.currency && e.currency !== 'ILS') ? `${e.currency==='USD'?'$':''}${e.amount_original} @${Number(e.fx_rate).toFixed(3)}` : '-';
  const link = e.file_link ? `<a href="${e.file_link}" target="_blank" style="color:var(--accent-cyan);">📎</a>` : '-';
- tbody.innerHTML += `<tr><td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td><td><strong>${e.tr_name || '-'}</strong></td><td><span class="badge" style="background:${colorForCat('expense_category', e.category)}; color:#fff;">${e.category || '-'}</span></td><td style="color:var(--accent-red); font-weight:bold;" data-sort="${e.amount}">₪${e.amount}</td><td style="font-size:11px;">${orig}</td><td>${e.payment_method || '-'}</td><td>${e.invoice_received || '-'}</td><td>${link}</td><td style="max-width:150px; white-space:normal; font-size:11px;">${e.notes || ''}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editExpense(${e.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteExpense(${e.id})">🗑️</button></td></tr>`;
+ tbody.innerHTML += `<tr><td>${e.expense_date ? e.expense_date.substring(0,10) : '-'}</td><td><strong>${e.tr_name || '-'}</strong></td><td><span class="badge" style="background:${colorForCat('expense_category', e.category)}; color:${textColorForCat('expense_category', e.category)};">${e.category || '-'}</span></td><td style="color:var(--accent-red); font-weight:bold;" data-sort="${e.amount}">₪${_nf(e.amount)}</td><td style="font-size:11px;">${orig}</td><td>${e.payment_method || '-'}</td><td>${e.invoice_received || '-'}</td><td>${link}</td><td style="max-width:150px; white-space:normal; font-size:11px;">${e.notes || ''}</td><td style="white-space:nowrap;"><button class="btn-action btn-blue" onclick="editExpense(${e.id})">✏️</button> <button class="btn-action btn-red" onclick="deleteExpense(${e.id})">🗑️</button></td></tr>`;
  });
  }
 
 
- let _charts = { monthly:null, pay:null, exp:null, top:null };
+ let _charts = { monthly:null, pay:null, exp:null, top:null, cumulative:null, forecast:null, coursetype:null, completion:null, validity:null, debts:null, weekday:null, hours:null };
 
  // קיצורי טווח: החודש / השנה / 12 חודשים אחרונים / כל הזמן
  function setStatsRange(kind){
- const today = new Date();
- const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
- let from='', to='';
- if (kind==='month'){ from=fmt(new Date(today.getFullYear(), today.getMonth(), 1)); to=fmt(new Date(today.getFullYear(), today.getMonth()+1, 0)); }
- else if (kind==='year'){ from=fmt(new Date(today.getFullYear(), 0, 1)); to=fmt(new Date(today.getFullYear(), 11, 31)); }
- else if (kind==='12m'){ from=fmt(new Date(today.getFullYear(), today.getMonth()-11, 1)); to=fmt(today); }
+ const r = rangeDates(kind);
  const f=document.getElementById('stat-from'), t=document.getElementById('stat-to');
- if (f) f.value=from; if (t) t.value=to;
+ if (f) f.value=r.from; if (t) t.value=r.to;
  applyStatsFilter();
  }
 
@@ -993,11 +1300,20 @@
  const months = Array.from(monthsSet).sort();
  const nMonths = months.length || 1;
  const setTxt = (id,v) => { const el=document.getElementById(id); if (el) el.innerText=v; };
- setTxt('st-total-income', '₪' + inc.toFixed(2));
- setTxt('st-total-expenses', '₪' + exp.toFixed(2));
- setTxt('st-net-profit', '₪' + net.toFixed(2));
+ setTxt('st-total-income', '₪' + _nf(inc));
+ setTxt('st-total-expenses', '₪' + _nf(exp));
+ setTxt('st-net-profit', '₪' + _nf(net));
  setTxt('st-net-margin', inc > 0 ? (net/inc*100).toFixed(1) + '%' : '—'); // רווח נקי כאחוז מההכנסה
- setTxt('st-avg-income', '₪' + (inc/nMonths).toFixed(2));
+ setTxt('st-avg-income', '₪' + _nf(inc/nMonths));
+ // סטטיסטיקות תלמידים (לא תלויות בטווח התאריכים — מצב נוכחי)
+ const active = allStudents.filter(s => !s.is_past_student);
+ const billed = active.reduce((a,s)=>a+Number(s.total_amount||0),0);
+ const collected = allInvoices.filter(i=>Number(i.amount_payed||0)>0 && active.some(s=>s.name===i.student_name)).reduce((a,i)=>a+Number(i.amount_payed||0),0);
+ const lessonsDone = active.reduce((a,s)=>a+Number(s.completed_lessons||0),0);
+ setTxt('st-active-students', String(active.length));
+ setTxt('st-avg-student', '₪' + _nf(active.length ? inc/active.length : 0));
+ setTxt('st-collection', billed>0 ? (collected/billed*100).toFixed(1)+'%' : '—');
+ setTxt('st-lessons-done', String(lessonsDone));
  renderStatsCharts(invF, expF, months);
  }
 
@@ -1037,6 +1353,64 @@
  const topEntries=Object.entries(stuMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
  const cts=document.getElementById('chart-topstudents');
  if (cts) _charts.top=new Chart(cts,{ type:'bar', data:{ labels:topEntries.map(e=>e[0]), datasets:[{ label:'Revenue', data:topEntries.map(e=>+e[1].toFixed(2)), backgroundColor:'rgba(8,145,178,0.75)', borderRadius:4 }] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ padding:12, titleFont:{ size:13 }, bodyFont:{ size:13 }, callbacks:{ label:ctx=>money(ctx.parsed.x) } } }, scales:{ x:{ ticks:{ callback:v=>money(v) } } } } });
+ // ===== גרפים נוספים =====
+ const mkBar = (id, labels, data, color, horizontal) => {
+ const el=document.getElementById(id); if(!el) return null;
+ return new Chart(el,{ type:'bar', data:{ labels, datasets:[{ data, backgroundColor:color, borderRadius:4 }] }, options:{ indexAxis: horizontal?'y':'x', responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ padding:10 } } } });
+ };
+ const mkDoughnut = (id, labels, data, colors) => {
+ const el=document.getElementById(id); if(!el) return null;
+ if(!data.some(v=>v>0)) return new Chart(el,{ type:'doughnut', data:{ labels:['No data'], datasets:[{ data:[1], backgroundColor:['#e2e8f0'] }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ enabled:false } } } });
+ return new Chart(el,{ type:'doughnut', data:{ labels, datasets:[{ data, backgroundColor:colors, borderColor:'#fff', borderWidth:2 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{ size:10 } } } } } });
+ };
+
+ // רווח נקי מצטבר לפי חודש
+ const incByM2={}, expByM2={};
+ months.forEach(m=>{ incByM2[m]=0; expByM2[m]=0; });
+ invF.forEach(i=>{ if(i.invoice_date){ const m=i.invoice_date.substring(0,7); if(m in incByM2) incByM2[m]+=Number(i.amount_payed||0); } });
+ expF.forEach(e=>{ if(e.expense_date){ const m=e.expense_date.substring(0,7); if(m in expByM2) expByM2[m]+=Number(e.amount||0); } });
+ let run=0; const cumArr=months.map(m=>{ run += (incByM2[m]-expByM2[m]); return +run.toFixed(2); });
+ const cel=document.getElementById('chart-cumulative');
+ if(cel) _charts.cumulative=new Chart(cel,{ type:'line', data:{ labels:months, datasets:[{ label:'Cumulative Net', data:cumArr, borderColor:'#0891b2', backgroundColor:'rgba(8,145,178,0.15)', fill:true, tension:0.3, pointRadius:3 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:ctx=>money(ctx.parsed.y) } } }, scales:{ y:{ ticks:{ callback:v=>money(v) } } } } });
+
+ // תחזית הכנסות: 3 חודשים קדימה לפי ממוצע 3 החודשים האחרונים
+ const incArr2=months.map(m=>+incByM2[m].toFixed(2));
+ const lastVals=incArr2.slice(-3); const avg3=lastVals.length?lastVals.reduce((a,b)=>a+b,0)/lastVals.length:0;
+ const fLabels=[...months]; const fData=[...incArr2.map(()=>null)];
+ const base = months[months.length-1] ? new Date(months[months.length-1]+'-01') : new Date();
+ for(let k=1;k<=3;k++){ const d=new Date(base.getFullYear(), base.getMonth()+k, 1); fLabels.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); fData.push(+avg3.toFixed(2)); }
+ if(incArr2.length) fData[incArr2.length-1]=incArr2[incArr2.length-1];
+ const fel=document.getElementById('chart-forecast');
+ if(fel) _charts.forecast=new Chart(fel,{ data:{ labels:fLabels, datasets:[
+ { type:'bar', label:'Actual', data:[...incArr2, null,null,null], backgroundColor:'rgba(5,150,105,0.75)', borderRadius:4 },
+ { type:'line', label:'Forecast', data:fData, borderColor:'#ea580c', borderDash:[6,4], backgroundColor:'#ea580c', tension:0.2, pointRadius:3 }
+ ]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' }, tooltip:{ callbacks:{ label:ctx=>ctx.dataset.label+': '+money(ctx.parsed.y) } } }, scales:{ y:{ ticks:{ callback:v=>money(v) } } } } });
+
+ // נתוני תלמידים פעילים
+ const act = allStudents.filter(s=>!s.is_past_student);
+ // לפי סוג קורס
+ const ctMap={}; act.forEach(s=>{ const k=s.course_type||'Beg'; ctMap[k]=(ctMap[k]||0)+1; });
+ const ctKeys=Object.keys(ctMap);
+ _charts.coursetype=mkDoughnut('chart-coursetype', ctKeys, ctKeys.map(k=>ctMap[k]), ctKeys.map(k=>{ const c=colorForCat('course_type',k); return (c&&c!=='#64748b')?c:'#2563eb'; }));
+ // התפלגות השלמת שיעורים
+ const buckets=[0,0,0,0,0]; // 0-24,25-49,50-74,75-99,100
+ act.forEach(s=>{ const t=Number(s.total_lessons||0), d=Number(s.completed_lessons||0); const p=t>0?Math.round(d/t*100):0; if(p>=100)buckets[4]++; else if(p>=75)buckets[3]++; else if(p>=50)buckets[2]++; else if(p>=25)buckets[1]++; else buckets[0]++; });
+ _charts.completion=mkBar('chart-completion', ['0-24%','25-49%','50-74%','75-99%','100%'], buckets, 'rgba(37,99,235,0.75)', false);
+ // סטטוס תוקף
+ let vA=0,vN=0,vE=0; act.forEach(s=>{ const d=_studentDerived(s); if(!s.validity_expiration_date) return; if(d.expired)vE++; else if(d.tpct>=90)vN++; else vA++; });
+ _charts.validity=mkDoughnut('chart-validity', ['Active','Near limit','Expired'], [vA,vN,vE], ['#059669','#f59e0b','#e11d48']);
+ // חובות פתוחים מובילים
+ const debts=act.map(s=>({ name:s.name, owed:_studentDerived(s).owed })).filter(x=>x.owed>0).sort((a,b)=>b.owed-a.owed).slice(0,8);
+ _charts.debts=mkBar('chart-debts', debts.map(d=>d.name), debts.map(d=>+d.owed.toFixed(2)), 'rgba(234,88,12,0.8)', true);
+
+ // תפעול: ניצול לפי יום בשבוע + שעות שיא (מתוך ההיסטוריה)
+ const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+ const wd=[0,0,0,0,0,0,0]; const hrs={};
+ (allHistory||[]).forEach(a=>{ if(a.appointment_date){ const dt=new Date(a.appointment_date.substring(0,10)); if(!isNaN(dt)) wd[dt.getDay()]++; } if(a.start_time){ const h=String(a.start_time).substring(0,2); hrs[h]=(hrs[h]||0)+1; } });
+ _charts.weekday=mkBar('chart-weekday', dayNames.slice(0,5), wd.slice(0,5), 'rgba(8,145,178,0.75)', false);
+ const hKeys=Object.keys(hrs).sort();
+ _charts.hours=mkBar('chart-hours', hKeys.map(h=>h+':00'), hKeys.map(h=>hrs[h]), 'rgba(124,58,237,0.75)', false);
+
  }
 
  function _doughnut(canvasId, map, catType, money){
@@ -1051,6 +1425,65 @@
  }
 
  function updateNetProfit() { applyStatsFilter(); }
+
+ // ===== מקרא לגרפים + הסתרה/החזרה של ווידג'טים =====
+ const WIDGET_NOTES = {
+ 'chart-monthly': 'Monthly totals — Income (sum) and Expenses (sum) as bars, Net Profit as a line. Follows the date range.',
+ 'chart-paymethods': 'Share of received payments by method (sum of positive receipts). Follows the date range.',
+ 'chart-expcats': 'Share of expenses by category (sum). Follows the date range.',
+ 'chart-topstudents': 'Top 5 students by total received payments (sum). Follows the date range.',
+ 'chart-cumulative': 'Running total of Net Profit across the months in range (each point adds all previous months).',
+ 'chart-forecast': 'Bars = actual monthly income (sum). Dashed line = forecast: average of the last 3 months, projected 3 months ahead.',
+ 'chart-coursetype': 'Current active students grouped by course type (count). Ignores the date range.',
+ 'chart-completion': 'Current active students grouped by % of lessons completed (count). Ignores the date range.',
+ 'chart-validity': 'Current active students by validity: Active / Near limit (\u226590% of time elapsed) / Expired. Ignores the date range.',
+ 'chart-debts': 'Current open balance per student (amount owed), top 8. Ignores the date range.',
+ 'chart-weekday': 'Number of lessons per weekday from history + current week (count).',
+ 'chart-hours': 'Number of lessons per start hour from history + current week (count).'
+ };
+ const _WKEY = 'adminHiddenWidgets';
+ function getHiddenWidgets(){ try { return JSON.parse(localStorage.getItem(_WKEY) || '[]'); } catch(e){ return []; } }
+ function setHiddenWidgets(a){ try { localStorage.setItem(_WKEY, JSON.stringify(a)); } catch(e){} }
+ function _collectWidgets(){
+ const list = [];
+ document.querySelectorAll('#stats-tab .stat-box').forEach(el => { const p = el.querySelector('p[id]'); const id = p ? p.id : null; const h = el.querySelector('h3'); if (id) list.push({ el, id, label: (h ? h.innerText : id), type:'stat' }); });
+ document.querySelectorAll('#stats-tab .chart-card').forEach(el => { const c = el.querySelector('canvas[id]'); const id = c ? c.id : null; const h = el.querySelector('h3'); if (id) list.push({ el, id, label: (h ? h.innerText : id), type:'chart' }); });
+ return list;
+ }
+ function applyWidgetVisibility(){
+ const hidden = new Set(getHiddenWidgets());
+ _collectWidgets().forEach(w => w.el.classList.toggle('widget-hidden', hidden.has(w.id)));
+ const c = document.getElementById('customize-count');
+ if (c) c.innerText = hidden.size ? `${hidden.size} hidden` : '';
+ }
+ function hideWidget(id){ const h = new Set(getHiddenWidgets()); h.add(id); setHiddenWidgets([...h]); applyWidgetVisibility(); }
+ function showWidget(id){ const h = new Set(getHiddenWidgets()); h.delete(id); setHiddenWidgets([...h]); applyWidgetVisibility(); if (typeof applyStatsFilter === 'function') applyStatsFilter(); }
+ function toggleWidget(id, visible){ visible ? showWidget(id) : hideWidget(id); }
+ function resetWidgets(){ setHiddenWidgets([]); applyWidgetVisibility(); openCustomize(); if (typeof applyStatsFilter === 'function') applyStatsFilter(); }
+ function openCustomize(){
+ const box = document.getElementById('customize-list'); if (!box) return;
+ const hidden = new Set(getHiddenWidgets());
+ box.innerHTML = _collectWidgets().map(w => `<label class="cust-row"><input type="checkbox" ${hidden.has(w.id) ? '' : 'checked'} onchange="toggleWidget('${w.id}', this.checked)"><span>${w.label}</span></label>`).join('');
+ document.getElementById('customize-modal').style.display = 'flex';
+ }
+ let _widgetsInit = false;
+ function initWidgetControls(){
+ if (_widgetsInit) return; _widgetsInit = true;
+ _collectWidgets().forEach(w => {
+ if (!w.el.querySelector('.wtoggle')) {
+ const btn = document.createElement('button');
+ btn.className = 'wtoggle'; btn.title = 'Hide this widget'; btn.type = 'button'; btn.innerHTML = '\u2715';
+ btn.onclick = (e) => { e.stopPropagation(); hideWidget(w.id); };
+ w.el.appendChild(btn);
+ }
+ if (w.type === 'chart' && WIDGET_NOTES[w.id] && !w.el.querySelector('.chart-note')) {
+ const h3 = w.el.querySelector('h3');
+ const note = document.createElement('div'); note.className = 'chart-note'; note.innerText = WIDGET_NOTES[w.id];
+ if (h3) h3.insertAdjacentElement('afterend', note); else w.el.prepend(note);
+ }
+ });
+ applyWidgetVisibility();
+ }
 
  async function loadCalendarView() {
  try {
@@ -1087,6 +1520,15 @@
  populateWeeklyStudents();
  loadBookingStatus();
  } catch(e) {}
+ }
+
+ async function loadHistoryForStats() {
+ try {
+ const res = await apiFetch('/api/admin/history-appointments');
+ const data = await res.json();
+ allHistory = data.appointments || [];
+ if (typeof applyStatsFilter === 'function') applyStatsFilter();
+ } catch(e) { allHistory = []; }
  }
 
  async function openHistoryModal() {
@@ -1361,9 +1803,9 @@
  const color = amt < 0 ? 'var(--accent-red)' : 'var(--accent-green)';
  const refundTag = i.is_refund ? ' <span class="badge badge-pending">Refund</span>' : '';
  const method = i.payment_method ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorForCat('payment_method', i.payment_method)};margin-right:6px;vertical-align:middle;"></span>${i.payment_method}` : '-';
- tbody.innerHTML += `<tr><td><strong>${i.invoice_number || '-'}</strong>${refundTag}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.period_covered || '-'}</td><td>${method}</td><td>${i.reference_number || '-'}</td><td>${i.transaction_id || '-'}</td><td>${i.payment_number || '-'}</td><td style="max-width:180px; white-space:normal; font-size:11px;">${i.notes || ''}</td><td style="color:${color}; font-weight:bold;" data-sort="${amt}">₪${amt}</td></tr>`;
+ tbody.innerHTML += `<tr><td><strong>${i.invoice_number || '-'}</strong>${refundTag}</td><td>${i.invoice_date ? i.invoice_date.substring(0,10) : '-'}</td><td>${i.period_covered || '-'}</td><td>${method}</td><td>${i.reference_number || '-'}</td><td>${i.transaction_id || '-'}</td><td>${i.payment_number || '-'}</td><td style="max-width:180px; white-space:normal; font-size:11px;">${i.notes || ''}</td><td style="color:${color}; font-weight:bold;" data-sort="${amt}">₪${_nf(amt)}</td></tr>`;
  });
- document.getElementById('history-summary').innerText = `Total paid: ₪${total.toFixed(2)}  •  ${rows.length} payment(s)`;
+ document.getElementById('history-summary').innerText = `Total paid: ₪${_nf(total)}  •  ${rows.length} payment(s)`;
  document.getElementById('payment-history-modal').style.display = 'flex';
  }
 
@@ -1396,7 +1838,7 @@
  : `<button class="btn-action btn-green" onclick="updatePayment(${p.id}, {status:'paid'})">Mark Paid</button>`;
  tbody.innerHTML += `<tr><td>${p.installment_number}/${p.total_installments}</td><td><input type="date" value="${due}" style="font-size:11px;" onchange="updatePayment(${p.id}, {due_date: this.value})"></td><td><input type="number" value="${amt}" style="width:80px; font-size:11px;" onchange="updatePayment(${p.id}, {amount: this.value})"></td><td>${statusBadge}</td><td style="white-space:nowrap;">${actionBtn} <button class="btn-action btn-red" onclick="deletePayment(${p.id})">🗑️</button></td></tr>`;
  });
- document.getElementById('payments-summary').innerHTML = `✅ Paid: <strong style="color:var(--accent-green);">₪${paidSum.toFixed(2)}</strong> &nbsp;|&nbsp; ⏳ Outstanding: <strong style="color:var(--accent-orange);">₪${pendingSum.toFixed(2)}</strong>`;
+ document.getElementById('payments-summary').innerHTML = `✅ Paid: <strong style="color:var(--accent-green);">₪${_nf(paidSum)}</strong> &nbsp;|&nbsp; ⏳ Outstanding: <strong style="color:var(--accent-orange);">₪${_nf(pendingSum)}</strong>`;
  }
 
  async function generatePlan() {
@@ -1441,7 +1883,7 @@
  const icon = it.type === 'payment' ? '💰' : '🔁';
  const color = it.type === 'payment' ? 'var(--accent-green)' : 'var(--accent-red)';
  const sym = it.currency === 'USD' ? '$' : '₪';
- return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--card-border);"><span>${icon} <strong>${it.date}</strong> — ${it.name} <span style="color:var(--text-muted);">(${it.detail})</span></span><span style="color:${color}; font-weight:700;">${sym}${Number(it.amount).toFixed(2)}</span></div>`;
+ return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--card-border);"><span>${icon} <strong>${it.date}</strong> — ${it.name} <span style="color:var(--text-muted);">(${it.detail})</span></span><span style="color:${color}; font-weight:700;">${sym}${_nf(it.amount)}</span></div>`;
  }).join('');
  } catch(e) {}
  }
@@ -1710,6 +2152,8 @@
  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
  const b = document.getElementById('theme-toggle'); if (b) b.innerText = dark ? '☀️' : '🌙';
  }
+ // פורמט תצוגה בלבד: פסיקי אלפים. אינו משנה חישובים או ערכי data-sort (שנשארים גולמיים למיון).
+ function _nf(n){ return Number(n||0).toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:2 }); }
  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 
