@@ -312,27 +312,6 @@
  const passesAllow = (allowList.length === 0) ? isAllowed : isInAllowList;
  const available = isStudentAllowedToBook && passesAllow && !isGloballyBlocked && !isStudentBlocked;
 
- // ===== DEBUG זמני: אבחון יום ראשון 20:00 =====
- if (day === 0 && slot.start === '20:00') {
-   const dbg = {
-     slotKey, slotRangeKey,
-     isStudentAllowedToBook, isAllowed, isInAllowList, passesAllow,
-     isGloballyBlocked, isStudentBlocked, available,
-     defaultTimeRange: studentData.defaultTimeRange,
-     allowListLen: allowList.length,
-     allowList_has_2000: allowList.includes(slotRangeKey),
-     allowList: allowList,
-     allGlobalBlocked_has: allGlobalBlocked.includes(slotKey),
-     studentBlocked_list: studentData.blockedSlots
-   };
-   console.log('DEBUG Sunday 20:00 =>', dbg);
-   let box = document.getElementById('__dbg');
-   if (!box) { box = document.createElement('pre'); box.id='__dbg';
-     box.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#111;color:#0f0;font-size:12px;padding:8px;margin:0;white-space:pre-wrap;max-height:40vh;overflow:auto;direction:ltr;text-align:left;border-bottom:2px solid #0f0';
-     document.body.appendChild(box); }
-   box.textContent = 'DEBUG Sunday 20:00-21:00\n' + JSON.stringify(dbg, null, 2);
- }
- // ===== /DEBUG =====
 
  if (!available) {
  btn.disabled = true;
