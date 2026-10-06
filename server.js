@@ -8,8 +8,8 @@ const crypto = require('crypto');
 // (#6) תאימות גרסאות Node: fetch גלובלי קיים רק מ-Node 18 ומעלה.
 // על גרסה ישנה יותר נטען node-fetch כ-fallback; אם גם הוא לא מותקן — getUsdIlsRate ייפול בחן לשער שמור/ברירת מחדל.
 if (typeof fetch === 'undefined') {
-  try { global.fetch = require('node-fetch'); }
-  catch (e) { console.warn('\u26a0\ufe0f global fetch unavailable and node-fetch not installed \u2014 USD\u2192ILS rates will fall back to cached/default values.'); }
+ try { global.fetch = require('node-fetch'); }
+ catch (e) { console.warn('⚠️ global fetch unavailable and node-fetch not installed — USD→ILS rates will fall back to cached/default values.'); }
 }
 
 const app = express();
@@ -166,8 +166,10 @@ async function initDb() {
  CREATE TABLE IF NOT EXISTS settings (key VARCHAR(50) PRIMARY KEY, value TEXT);
  CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, type VARCHAR(50) NOT NULL, name VARCHAR(100) NOT NULL, color VARCHAR(20) DEFAULT '#64748b');
  ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#64748b';
+ ALTER TABLE categories ADD COLUMN IF NOT EXISTS text_color VARCHAR(20) DEFAULT '#ffffff';
  CREATE TABLE IF NOT EXISTS invoices (
- id SERIAL PRIMARY KEY, invoice_number VARCHAR(50), student_name VARCHAR(100),
+ id SERIAL PRIMARY KEY,
+ invoice_number VARCHAR(50), student_name VARCHAR(100),
  invoice_date DATE, payment_method VARCHAR(50), amount_payed NUMERIC(10,2) DEFAULT 0,
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
  );
@@ -450,6 +452,7 @@ app.get('/api/admin/blocked-slots', async (req, res) => {
  try { res.json({ blockedSlots: (await pool.query('SELECT * FROM blocked_slots ORDER BY day_index, start_time')).rows }); }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/blocked-slots', async (req, res) => {
  try {
  const { dayIndex, startTime, endTime, reason } = req.body;
@@ -458,6 +461,7 @@ app.post('/api/admin/blocked-slots', async (req, res) => {
  res.json({ success: true, slot: r.rows[0] });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 // 🗑️ ארכוב כל רשומה שנמחקת לטבלת deleted_records (לא מוחק מידע סופית — נשמר ב-DB)
 async function archiveDeleted(entityType, rows) {
  try {
@@ -468,6 +472,7 @@ async function archiveDeleted(entityType, rows) {
  }
  } catch (e) { console.error('archiveDeleted failed:', e.message); }
 }
+
 app.post('/api/admin/blocked-slots/delete', async (req, res) => {
  try {
  const r = await pool.query('SELECT * FROM blocked_slots WHERE id = $1', [req.body.id]);
@@ -477,14 +482,17 @@ app.post('/api/admin/blocked-slots/delete', async (req, res) => {
  }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 // 🔁 חסימה קבועה (כל שבוע עד ביטול) — נשמרת ב-settings.default_global_blocked_slots ולא מתאפסת ב-Reset Week
 async function getRecurringBlocks() {
  const r = await pool.query("SELECT value FROM settings WHERE key = 'default_global_blocked_slots'");
  try { return JSON.parse((r.rows[0] && r.rows[0].value) || '[]'); } catch { return []; }
 }
+
 async function saveRecurringBlocks(list) {
  await pool.query("UPDATE settings SET value = $1 WHERE key = 'default_global_blocked_slots'", [JSON.stringify(list || [])]);
 }
+
 // כל מפתחות החסימה המאוחדים בפורמט "<dayIndex>_<startTime>": חסימה קבועה (settings) + חסימה שבועית (settings) + חסימות חד-פעמיות (טבלת blocked_slots)
 async function getAllBlockedKeys() {
  const sres = await pool.query("SELECT key, value FROM settings WHERE key IN ('default_global_blocked_slots','weekly_global_blocked_slots')");
@@ -493,12 +501,12 @@ async function getAllBlockedKeys() {
  const table = (await pool.query('SELECT day_index, start_time FROM blocked_slots')).rows.map(b => `${b.day_index}_${b.start_time}`);
  return Array.from(new Set([...keys, ...table]));
 }
+
 app.post('/api/admin/recurring-block/add', async (req, res) => {
  try {
  const { dayIndex, startTime, endTime } = req.body;
  if (dayIndex === undefined || !startTime || !endTime) return res.status(400).json({ error: 'שדות חובה חסרים' });
  const list = await getRecurringBlocks();
- // פורמט המפתח תואם לדף התלמידים: "<dayIndex>_<startTime>" (allGlobalBlocked.includes)
  const key = `${Number(dayIndex)}_${startTime}`;
  if (!list.includes(key)) list.push(key);
  await saveRecurringBlocks(list);
@@ -506,6 +514,7 @@ app.post('/api/admin/recurring-block/add', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/recurring-block/remove', async (req, res) => {
  try {
  const { dayIndex, startTime } = req.body;
@@ -517,11 +526,11 @@ app.post('/api/admin/recurring-block/remove', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/book-direct', async (req, res) => {
  try {
  const { dayIndex, startTime, endTime, studentName } = req.body;
  if (dayIndex === undefined || !startTime || !endTime || !studentName) return res.status(400).json({ error: 'שדות חובה חסרים' });
- // אכיפה: אין לשבץ בסלוט חסום (חד-פעמי או קבוע)
  const blockedKeys = await getAllBlockedKeys();
  if (blockedKeys.includes(`${Number(dayIndex)}_${startTime}`))
  return res.status(400).json({ error: 'המשבצת חסומה ואינה זמינה.' });
@@ -530,19 +539,18 @@ app.post('/api/admin/book-direct', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/admin/history-appointments', async (req, res) => {
  try {
  const sr = await pool.query("SELECT value FROM settings WHERE key = 'sunday_date'");
  const sundayDate = sr.rows[0] ? sr.rows[0].value : '';
  let base = null;
  if (sundayDate) { const [y, m, d] = sundayDate.split('-').map(Number); base = new Date(y, m - 1, d); }
- // השבוע הנוכחי (מהלוח החי) — התאריך מחושב מתוך ה-sunday_date הנוכחי
  const current = (await pool.query("SELECT * FROM appointments ORDER BY day_index, start_time")).rows.map(a => {
  let appointment_date = null;
  if (base) { const dt = new Date(base); dt.setDate(base.getDate() + a.day_index); appointment_date = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`; }
  return { ...a, appointment_date };
  });
- // כל השבועות שאורכבו ב-Reset Week — נשמרים לצמיתות
  const archived = (await pool.query("SELECT * FROM appointments_history")).rows.map(a => ({
  ...a,
  appointment_date: a.appointment_date
@@ -551,7 +559,6 @@ app.get('/api/admin/history-appointments', async (req, res) => {
  : String(a.appointment_date).slice(0, 10))
  : null
  }));
- // מיזוג: חדש → ישן (תאריך יורד), ואז לפי שעת התחלה
  const appointments = [...current, ...archived].sort((x, y) => {
  const dx = x.appointment_date || '', dy = y.appointment_date || '';
  if (dx !== dy) return dx < dy ? 1 : -1;
@@ -560,10 +567,10 @@ app.get('/api/admin/history-appointments', async (req, res) => {
  res.json({ appointments });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/reset-slots', async (req, res) => {
  try {
  const { sundayDate, applyFixedLessons } = req.body;
- // (10) ארכוב השבוע שהסתיים לפני המחיקה — התאריך האמיתי מחושב מתוך ה-sunday_date הנוכחי
  const prevSundayRes = await pool.query("SELECT value FROM settings WHERE key = 'sunday_date'");
  const prevSunday = prevSundayRes.rows[0] ? prevSundayRes.rows[0].value : '';
  if (prevSunday) {
@@ -590,10 +597,12 @@ app.post('/api/admin/reset-slots', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/delete-appointment', async (req, res) => {
  try { await pool.query("DELETE FROM appointments WHERE id = $1", [req.body.id]); res.json({ success: true }); }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/global-blocks/save', async (req, res) => {
  try {
  const { defaultGlobalBlocked, weeklyGlobalBlocked } = req.body;
@@ -602,6 +611,7 @@ app.post('/api/admin/global-blocks/save', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/toggle-status', async (req, res) => {
  try {
  const { isOpen, openMode, allowedStudents } = req.body;
@@ -611,6 +621,7 @@ app.post('/api/admin/toggle-status', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/admin/export-ical', async (req, res) => {
  try {
  const sr = await pool.query("SELECT * FROM settings");
@@ -643,11 +654,11 @@ app.get('/api/admin/students-full', async (req, res) => {
  res.json({ students: rows });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/students-full/save', async (req, res) => {
  try {
  const { id, name, phone, email, course_type, default_quota, total_amount, total_lessons, completed_lessons, process_duration_months, start_date, is_past_student, validity_expiration_date, id_number, allowed_slots, fixed_lessons } = req.body;
  if (!name) return res.status(400).json({ error: 'Student Name is required' });
- // תוקף התהליך: אם המנהל הזין תאריך ידני — משתמשים בו; אחרת מחשבים אוטומטית 125% ממשך התהליך.
  let expDate = null;
  if (validity_expiration_date) {
  expDate = validity_expiration_date;
@@ -665,11 +676,9 @@ app.post('/api/admin/students-full/save', async (req, res) => {
  await pool.query(`INSERT INTO students (name, phone, email, course_type, default_quota, total_amount, total_lessons, completed_lessons, process_duration_months, start_date, is_past_student, validity_expiration_date, id_number_encrypted) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (name) DO UPDATE SET phone=EXCLUDED.phone, email=EXCLUDED.email, course_type=EXCLUDED.course_type, default_quota=EXCLUDED.default_quota, total_amount=EXCLUDED.total_amount, total_lessons=EXCLUDED.total_lessons, completed_lessons=EXCLUDED.completed_lessons, process_duration_months=EXCLUDED.process_duration_months, start_date=EXCLUDED.start_date, is_past_student=EXCLUDED.is_past_student, validity_expiration_date=EXCLUDED.validity_expiration_date, id_number_encrypted=COALESCE(EXCLUDED.id_number_encrypted, students.id_number_encrypted)`,
  [name.trim(), phone || null, email || null, course_type || null, default_quota || 2, total_amount || 0, total_lessons || 0, completed_lessons || 0, process_duration_months || 1, start_date || null, is_past_student === true, expDate, encId]);
  }
- // (1) סלוטים מותרים כברירת מחדל לתלמיד (מעודכן בנפרד כדי לא לשנות את שאר ה-UPDATE)
  if (allowed_slots !== undefined) {
  await pool.query("UPDATE students SET allowed_slots = $1 WHERE name = $2", [JSON.stringify(Array.isArray(allowed_slots) ? allowed_slots : []), name.trim()]);
  }
- // (1b) שיעורים קבועים (יום + סלוט) — מעודכן בנפרד; נשלח רק מחלון התלמיד, כך שתלמידים שלא נערכו שומרים את הנתונים הקיימים
  if (fixed_lessons !== undefined) {
  const fl = Array.isArray(fixed_lessons) ? fixed_lessons.map(f => ({ dayIndex: Number(f.dayIndex), startTime: f.startTime, endTime: f.endTime })) : [];
  await pool.query("UPDATE students SET fixed_lessons = $1 WHERE name = $2", [JSON.stringify(fl), name.trim()]);
@@ -678,7 +687,7 @@ app.post('/api/admin/students-full/save', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
-// (2) פסק/חידוש הוצאה חוזרת — עוצר הזרקות עתידיות בלי לגעת במופעים שכבר נוצרו
+
 app.post('/api/admin/recurring-expenses/toggle', async (req, res) => {
  try {
  await pool.query("UPDATE recurring_expenses SET active = $1 WHERE id = $2", [req.body.active === true, req.body.id]);
@@ -686,6 +695,7 @@ app.post('/api/admin/recurring-expenses/toggle', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/students/delete', async (req, res) => {
  try {
  const sr = await pool.query("SELECT * FROM students WHERE id = $1", [req.body.id]);
@@ -704,11 +714,11 @@ app.post('/api/admin/students/delete', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/students/weekly-override', async (req, res) => {
  try {
  const { student_name } = req.body;
  if (!student_name) return res.status(400).json({ error: 'Missing student_name' });
- // טוענים קונפיג קיים כדי לא לדרוס שדות שלא נשלחו בבקשה הנוכחית
  const existing = (await pool.query("SELECT * FROM weekly_student_config WHERE student_name = $1", [student_name])).rows[0] || {};
  const quota_override = ('quota_override' in req.body) ? req.body.quota_override : (existing.quota_override ?? null);
  const blocked = ('blocked_slots_override' in req.body) ? req.body.blocked_slots_override : (existing.blocked_slots_override || []);
@@ -728,14 +738,19 @@ app.get('/api/admin/categories', async (req, res) => {
  try { res.json({ categories: (await pool.query('SELECT * FROM categories ORDER BY id ASC')).rows }); }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/categories/add', async (req, res) => {
  try {
- const { type, name, color } = req.body;
+ const { type, name, color, text_color } = req.body;
  if (!name || !type) return res.status(400).json({ error: 'Type and name required' });
- await pool.query('INSERT INTO categories (type, name, color) VALUES ($1, $2, $3)', [type, name, color || '#64748b']);
+ await pool.query(
+ 'INSERT INTO categories (type, name, color, text_color) VALUES ($1, $2, $3, $4)',
+ [type, name, color || '#64748b', text_color || '#ffffff']
+ );
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/categories/delete', async (req, res) => {
  try {
  const r = await pool.query('SELECT * FROM categories WHERE id = $1', [req.body.id]);
@@ -745,14 +760,19 @@ app.post('/api/admin/categories/delete', async (req, res) => {
  }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/categories/color', async (req, res) => {
  try {
- const { id, color } = req.body;
- if (!id || !color) return res.status(400).json({ error: 'id and color required' });
- await pool.query('UPDATE categories SET color = $1 WHERE id = $2', [color, id]);
+ const { id, color, text_color } = req.body;
+ if (!id || (!color && !text_color)) return res.status(400).json({ error: 'id and color or text_color required' });
+ await pool.query(
+ 'UPDATE categories SET color = COALESCE($1, color), text_color = COALESCE($2, text_color) WHERE id = $3',
+ [color ?? null, text_color ?? null, id]
+ );
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 // ===== המרת מטבע: שער USD→ILS יומי מ-frankfurter.app, עם cache בטבלת settings =====
 async function getUsdIlsRate(dateStr) {
  const d = (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) ? dateStr : new Date().toISOString().slice(0,10);
@@ -773,22 +793,25 @@ async function getUsdIlsRate(dateStr) {
  await pool.query('INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', [key, String(rate)]);
  return rate;
 }
+
 app.get('/api/admin/fx-rate', async (req, res) => {
  try {
  const rate = await getUsdIlsRate(req.query.date || null);
  res.json({ rate, from: 'USD', to: 'ILS', date: req.query.date || new Date().toISOString().slice(0,10) });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/admin/invoices', async (req, res) => {
  try { res.json({ invoices: (await pool.query('SELECT * FROM invoices ORDER BY invoice_date DESC NULLS LAST, id DESC')).rows }); }
  catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/invoices/save', async (req, res) => {
  try {
  const { invoice_number, student_name, invoice_date, payment_method, period_covered, reference_number, transaction_id, notes, payment_number } = req.body;
  const isRefund = (req.body.is_refund === true || req.body.is_refund === 'true');
  let amt = Math.abs(Number(req.body.amount_payed) || 0);
- if (isRefund) amt = -amt; // ריפאנד נשמר תמיד כסכום שלילי
+ if (isRefund) amt = -amt;
  const pnum = (payment_number ? Number(payment_number) : null);
  if (req.body.id) {
  await pool.query(`UPDATE invoices SET invoice_number=$1, student_name=$2, invoice_date=$3, payment_method=$4, amount_payed=$5, is_refund=$6, period_covered=$7, reference_number=$8, transaction_id=$9, notes=$10, payment_number=$11 WHERE id=$12`, [invoice_number || null, student_name || null, invoice_date || null, payment_method || null, amt, isRefund, period_covered || null, reference_number || null, transaction_id || null, notes || null, pnum, req.body.id]);
@@ -800,12 +823,14 @@ app.post('/api/admin/invoices/save', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.get('/api/admin/expenses', async (req, res) => {
  try {
  await materializeRecurringExpenses();
  res.json({ expenses: (await pool.query('SELECT * FROM expenses ORDER BY expense_date DESC NULLS LAST, id DESC')).rows });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/expenses/save', async (req, res) => {
  try {
  const { expense_date, tr_name, category, payment_method, invoice_received, file_link, notes } = req.body;
@@ -843,6 +868,7 @@ app.post('/api/admin/invoices/delete', async (req, res) => {
  res.json({ success: true });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 app.post('/api/admin/expenses/delete', async (req, res) => {
  try {
  const r = await pool.query('SELECT * FROM expenses WHERE id = $1', [req.body.id]);
@@ -885,17 +911,16 @@ app.post('/api/admin/payments/generate', async (req, res) => {
  const n = Number(numInstallments);
  const total = Number(totalAmount);
  if (!student_name || !n || n < 1 || !firstDueDate) return res.status(400).json({ error: 'חסרים פרטי עסקה (תלמיד, מספר תשלומים, תאריך ראשון)' });
- // מוחקים תוכנית קודמת של אותו תלמיד ומייצרים חדשה (פעולה מפורשת של המנהל)
  await pool.query('DELETE FROM payments WHERE student_name = $1', [student_name]);
- const base = Math.floor((total / n) * 100) / 100; // עיגול כלפי מטה לכל תשלום
+ const base = Math.floor((total / n) * 100) / 100;
  let allocated = 0;
  const [y, m, d] = firstDueDate.split('-').map(Number);
  for (let i = 0; i < n; i++) {
  const dt = new Date(y, m - 1, d);
- dt.setMonth(dt.getMonth() + i); // כל תשלום חודש בדיוק אחרי הקודם
+ dt.setMonth(dt.getMonth() + i);
  const due = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
  let amt = base;
- if (i === n - 1) amt = Math.round((total - allocated) * 100) / 100; // התשלום האחרון סוגר עודף עיגול
+ if (i === n - 1) amt = Math.round((total - allocated) * 100) / 100;
  allocated += base;
  await pool.query('INSERT INTO payments (student_name, installment_number, total_installments, amount, due_date, status) VALUES ($1,$2,$3,$4,$5,$6)', [student_name, i + 1, n, amt, due, 'pending']);
  }
@@ -939,24 +964,22 @@ app.post('/api/admin/payments/delete', async (req, res) => {
 // ==========================================
 // 🔁 הוצאות חוזרות + 🔔 לוח 7 ימים + הגדרות תלמיד
 // ==========================================
-// (2) סלוטים מותרים אפקטיביים: דריסת השבוע → allowed_slots שהוגדר ידנית → הסלוטים הדיפולטיים הקיימים (fixed_lessons)
 function deriveAllowedSlots(student, override) {
- // ההיתר נקבע לפי דריסת שבוע או allowed_slots בלבד. שיעורים קבועים (fixed_lessons) אינם מגבילים היכן מותר לתלמיד לקבוע — ריק = כל הסלוטים מותרים.
  if (override && override.length) return override;
  if (student && student.allowed_slots && student.allowed_slots.length) return student.allowed_slots;
  return [];
 }
+
 function fmtDate(dt) { return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+
 function advanceFreq(dt, freq) {
  const d = new Date(dt);
  if (freq === 'weekly') d.setDate(d.getDate() + 7);
  else if (freq === 'yearly') d.setFullYear(d.getFullYear() + 1);
- else d.setMonth(d.getMonth() + 1); // monthly (ברירת מחדל)
+ else d.setMonth(d.getMonth() + 1);
  return d;
 }
 
-// מזריקה אוטומטית לכל הוצאה חוזרת את כל המופעים שהגיע זמנם, ומקדמת את next_run קדימה.
-// דטרמיניסטי: לאחר ההרצה next_run תמיד > היום, כך שהרצות חוזרות לא יוצרות כפילויות.
 async function materializeRecurringExpenses() {
  const today = new Date(); today.setHours(0,0,0,0);
  const recs = (await pool.query("SELECT * FROM recurring_expenses WHERE active = TRUE")).rows;
@@ -1003,7 +1026,6 @@ app.post('/api/admin/recurring-expenses/save', async (req, res) => {
  );
  await logAction(req, 'RECURRING_EXPENSE_UPDATE', `${tr_name} ${freq}`);
  } else {
- // בעת יצירה next_run מתחיל בתאריך ההתחלה, כך שמופעים שעבר זמנם ייווצרו מיד
  await pool.query(
  `INSERT INTO recurring_expenses (tr_name, category, amount, currency, payment_method, frequency, start_date, next_run, active)
  VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8)`,
@@ -1026,7 +1048,6 @@ app.post('/api/admin/recurring-expenses/delete', async (req, res) => {
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// לוח 7 ימים: מאחד תשלומים צפויים (installments שטרם שולמו) + הוצאות חוזרות צפויות
 app.get('/api/admin/upcoming', async (req, res) => {
  try {
  await materializeRecurringExpenses();
@@ -1053,50 +1074,47 @@ app.get('/api/admin/upcoming', async (req, res) => {
  }
  }
  items.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
- // (3) התראות: תלמיד שעבר 90% בשיעורים או בתוקף התהליך — תזכורת למנהל
  const studs = (await pool.query("SELECT * FROM students WHERE is_past_student = FALSE")).rows;
-    const prefRows = (await pool.query("SELECT alert_key, state FROM alert_prefs")).rows;
-    const prefMap = {}; for (const pr of prefRows) prefMap[pr.alert_key] = pr.state;
-    const toDay = (v) => new Date(((v instanceof Date) ? v.toISOString() : String(v)).slice(0,10) + "T00:00:00Z");
-    const today0 = new Date(new Date().toISOString().slice(0,10) + "T00:00:00Z");
-    const alerts = [];
-    for (const s of studs) {
-      const key = String(s.id);
-      if (prefMap[key] === 'deleted') continue;
-      const total = Number(s.total_lessons) || 0, done = Number(s.completed_lessons) || 0;
-      const lessonPct = total > 0 ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
-      let timePct = null;
-      if (s.start_date && s.validity_expiration_date) {
-        const start = toDay(s.start_date);
-        const exp = toDay(s.validity_expiration_date);
-        const span = exp - start;
-        if (span > 0 && !isNaN(span)) timePct = Math.max(0, Math.min(100, Math.round(((today0 - start) / span) * 100)));
-      }
-      const parts = [];
-      if (lessonPct >= 90) parts.push(`Lessons ${lessonPct}%`);
-      if (timePct !== null && timePct >= 90) parts.push(`Validity ${timePct}%`);
-      if (parts.length) alerts.push({ key, name: s.name, detail: parts.join(' · '), lessonPct, timePct, hidden: prefMap[key] === 'hidden' });
-    }
+ const prefRows = (await pool.query("SELECT alert_key, state FROM alert_prefs")).rows;
+ const prefMap = {}; for (const pr of prefRows) prefMap[pr.alert_key] = pr.state;
+ const toDay = (v) => new Date(((v instanceof Date) ? v.toISOString() : String(v)).slice(0,10) + "T00:00:00Z");
+ const today0 = new Date(new Date().toISOString().slice(0,10) + "T00:00:00Z");
+ const alerts = [];
+ for (const s of studs) {
+ const key = String(s.id);
+ if (prefMap[key] === 'deleted') continue;
+ const total = Number(s.total_lessons) || 0, done = Number(s.completed_lessons) || 0;
+ const lessonPct = total > 0 ? Math.max(0, Math.min(100, Math.round(done / total * 100))) : 0;
+ let timePct = null;
+ if (s.start_date && s.validity_expiration_date) {
+ const start = toDay(s.start_date);
+ const exp = toDay(s.validity_expiration_date);
+ const span = exp - start;
+ if (span > 0 && !isNaN(span)) timePct = Math.max(0, Math.min(100, Math.round(((today0 - start) / span) * 100)));
+ }
+ const parts = [];
+ if (lessonPct >= 90) parts.push(`Lessons ${lessonPct}%`);
+ if (timePct !== null && timePct >= 90) parts.push(`Validity ${timePct}%`);
+ if (parts.length) alerts.push({ key, name: s.name, detail: parts.join(' · '), lessonPct, timePct, hidden: prefMap[key] === 'hidden' });
+ }
  res.json({ upcoming: items, alerts });
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// שמירת מצב התראה בלוח המודעות: visible / hidden / deleted
 app.post('/api/admin/alerts/state', async (req, res) => {
-  try {
-    const { key, state } = req.body || {};
-    if (!key || !['visible','hidden','deleted'].includes(state)) return res.status(400).json({ error: 'invalid key/state' });
-    if (state === 'visible') {
-      await pool.query('DELETE FROM alert_prefs WHERE alert_key = $1', [String(key)]);
-    } else {
-      await pool.query(`INSERT INTO alert_prefs (alert_key, state, updated_at) VALUES ($1,$2,NOW()) ON CONFLICT (alert_key) DO UPDATE SET state=EXCLUDED.state, updated_at=NOW()`, [String(key), state]);
-    }
-    await logAction(req, 'ALERT_STATE', `${key} -> ${state}`);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+ try {
+ const { key, state } = req.body || {};
+ if (!key || !['visible','hidden','deleted'].includes(state)) return res.status(400).json({ error: 'invalid key/state' });
+ if (state === 'visible') {
+ await pool.query('DELETE FROM alert_prefs WHERE alert_key = $1', [String(key)]);
+ } else {
+ await pool.query(`INSERT INTO alert_prefs (alert_key, state, updated_at) VALUES ($1,$2,NOW()) ON CONFLICT (alert_key) DO UPDATE SET state=EXCLUDED.state, updated_at=NOW()`, [String(key), state]);
+ }
+ await logAction(req, 'ALERT_STATE', `${key} -> ${state}`);
+ res.json({ ok: true });
+ } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// קריאת דריסה שבועית קיימת לתלמיד (לטובת תצוגה בלוח)
 app.get('/api/admin/students/weekly-override', async (req, res) => {
  try {
  const r = await pool.query("SELECT * FROM weekly_student_config WHERE student_name = $1", [req.query.student_name]);
@@ -1104,7 +1122,6 @@ app.get('/api/admin/students/weekly-override', async (req, res) => {
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// יומן הביקורת — צפייה (מוגן)
 app.get('/api/admin/audit-log', async (req, res) => {
  try { res.json({ log: (await pool.query('SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 200')).rows }); }
  catch (err) { res.status(500).json({ error: err.message }); }
@@ -1114,9 +1131,8 @@ app.get('/api/admin/audit-log', async (req, res) => {
 // 💾 גיבוי ושחזור מלא של כל הנתונים (מוגן ע"י השוער)
 // ==========================================
 const BACKUP_TABLES = ['students','appointments','appointments_history','weekly_student_config','settings','categories','invoices','expenses','blocked_slots','payments','recurring_expenses','audit_log','deleted_records','alert_prefs'];
-const BACKUP_NO_ID = new Set(['settings','weekly_student_config','alert_prefs']); // טבלאות בלי עמודת id אוטומטית
+const BACKUP_NO_ID = new Set(['settings','weekly_student_config','alert_prefs']);
 
-// ייצוא: מחזיר קובץ JSON עם כל הטבלאות (כולל ת"ז מוצפנת כמות שהיא) להורדה למחשב
 app.get('/api/admin/backup', async (req, res) => {
  try {
  const dump = { version: 1, exported_at: new Date().toISOString(), tables: {} };
@@ -1129,7 +1145,6 @@ app.get('/api/admin/backup', async (req, res) => {
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// שחזור: מוחק את הנתונים הקיימים ומחליף בגיבוי — בתוך טרנזקציה אחת (אם משהו נכשל, כלום לא משתנה)
 app.post('/api/admin/restore', async (req, res) => {
  const client = await pool.connect();
  try {
@@ -1138,7 +1153,7 @@ app.post('/api/admin/restore', async (req, res) => {
  await client.query('BEGIN');
  for (const t of BACKUP_TABLES) {
  const rows = data.tables[t];
- if (!Array.isArray(rows)) continue; // טבלה שלא קיימת בגיבוי — לא נוגעים בה (לא מוחקים)
+ if (!Array.isArray(rows)) continue;
  await client.query(`DELETE FROM ${t}`);
  for (const row of rows) {
  const cols = Object.keys(row);
@@ -1148,7 +1163,6 @@ app.post('/api/admin/restore', async (req, res) => {
  await client.query(`INSERT INTO ${t} (${cols.map(c => `"${c}"`).join(',')}) VALUES (${ph})`, vals);
  }
  if (!BACKUP_NO_ID.has(t)) {
- // מסנכרנים את מונה ה-id כדי שרשומות חדשות לא יתנגשו עם מה ששוחזר
  await client.query(`SELECT setval(pg_get_serial_sequence('${t}','id'), COALESCE((SELECT MAX(id) FROM ${t}), 1), true)`);
  }
  }
