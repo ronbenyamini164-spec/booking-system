@@ -6,6 +6,7 @@
  <title>Admin Dashboard & Business Management</title>
  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+ <script>(function(){try{var t=localStorage.getItem('admin-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
  <style>
  :root {
  --bg-dark: #f1f5f9; --card-bg: #ffffff; --card-border: #e2e8f0;
@@ -79,6 +80,41 @@
  .btn-action { padding: 7px 10px; font-size: 11px; }
  .form-grid { grid-template-columns: 1fr; }
  }
+ /* ===== Dark theme (toggle) ===== */
+ :root[data-theme="dark"] {
+ --bg-dark: #0b1120; --card-bg: #151c2c; --card-border: #26324a;
+ --accent-cyan: #22d3ee; --accent-blue: #60a5fa; --accent-green: #34d399;
+ --accent-red: #fb7185; --accent-orange: #fb923c; --text-main: #e8eef9; --text-muted: #94a3b8;
+ }
+ :root[data-theme="dark"] .navbar { background: rgba(21,28,44,0.85); }
+ :root[data-theme="dark"] input, :root[data-theme="dark"] select, :root[data-theme="dark"] textarea { background: #0b1120; }
+ :root[data-theme="dark"] th, :root[data-theme="dark"] .stat-box, :root[data-theme="dark"] .time-label, :root[data-theme="dark"] .slot-item { background: #10192c; }
+ :root[data-theme="dark"] .quick-range button { background: #26324a; color: var(--text-main); }
+ :root[data-theme="dark"] .quick-range button:hover { background: #334155; }
+ :root[data-theme="dark"] .btn-ltgreen { background: #0d3b2e; color: #6ee7b7; }
+ :root[data-theme="dark"] .btn-ltyellow { background: #3b320d; color: #fde68a; }
+ :root[data-theme="dark"] ::placeholder { color: #64748b; }
+ /* ===== Subtle, professional micro-interactions ===== */
+ html { scroll-behavior: smooth; }
+ body, .navbar, input, select, textarea, th, td { transition: background-color .25s ease, color .25s ease, border-color .25s ease; }
+ .card { transition: box-shadow .3s ease, transform .3s ease; }
+ .card:hover { box-shadow: 0 14px 32px rgba(0,0,0,0.12); }
+ .btn-action { transition: filter .15s ease, transform .08s ease, box-shadow .15s ease; }
+ .btn-action:hover { filter: brightness(1.08); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+ .btn-action:active { transform: scale(0.96); }
+ .nav-tabs button { transition: background .2s ease, color .2s ease, transform .1s ease; }
+ .nav-tabs button:hover { color: var(--text-main); background: rgba(8,145,178,0.08); }
+ .tab-content { animation: fadeInUp .28s ease both; }
+ @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+ tbody tr { transition: background .15s ease; }
+ tbody tr:hover { background: rgba(8,145,178,0.06); }
+ .stat-box { transition: transform .2s ease, box-shadow .2s ease; }
+ .stat-box:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.10); }
+ .slot-item { transition: transform .12s ease, box-shadow .15s ease, background .2s ease; }
+ .slot-item:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.10); }
+ .modal-content { animation: modalPop .22s ease both; }
+ @keyframes modalPop { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: none; } }
+ @media (prefers-reduced-motion: reduce) { *, .tab-content, .modal-content { animation: none !important; transition: none !important; } }
  </style>
 </head>
 <body>
@@ -101,7 +137,8 @@
  <button onclick="switchTab(event, 'invoices-tab')">💵 Invoices & Revenue</button>
  <button onclick="switchTab(event, 'expenses-tab')">💸 Business Expenses</button>
  <button onclick="switchTab(event, 'stats-tab')">📊 Stats & Results</button>
- <button onclick="logout()" style="flex:0; background:#334155; color:#fff;">🚪 Logout</button>
+ <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark" style="flex:0; min-width:42px; background:transparent; border:1px solid var(--card-border); color:var(--text-main);">🌙</button>
+  <button onclick="logout()" style="flex:0; background:#334155; color:#fff;">🚪 Logout</button>
  </div>
 </div>
 
@@ -553,6 +590,7 @@
 
  window.onload = async function() {
  populateSlotSelects();
+ _initThemeIcon();
  try {
  const res = await fetch('/api/admin/verify', { credentials: 'same-origin' });
  if (res.ok) {
@@ -1661,6 +1699,17 @@
  input.value='';
  }
 
+ function toggleTheme() {
+ const root = document.documentElement;
+ const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+ root.setAttribute('data-theme', next);
+ try { localStorage.setItem('admin-theme', next); } catch(e) {}
+ const b = document.getElementById('theme-toggle'); if (b) b.innerText = next === 'dark' ? '☀️' : '🌙';
+ }
+ function _initThemeIcon() {
+ const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+ const b = document.getElementById('theme-toggle'); if (b) b.innerText = dark ? '☀️' : '🌙';
+ }
  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 
