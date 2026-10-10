@@ -223,6 +223,14 @@
  .header-cell { font-size: 9px !important; }
  .slot-btn { font-size: 9px !important; }
  }
+ /* ===== v4: booked/own-lesson overlays fit the slot on phone (no letter spill) ===== */
+ .block-overlay { overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.1; }
+ @media (max-width: 700px){
+ .block-fixed, .block-selected, .block-booked { font-size: 8.5px !important; padding: 1px !important; }
+ }
+ @media (max-width: 420px){
+ .block-fixed, .block-selected, .block-booked { font-size: 7.5px !important; }
+ }
  </style>
  <script>(function(){try{var t=localStorage.getItem('book-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>

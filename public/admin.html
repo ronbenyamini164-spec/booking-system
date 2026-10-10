@@ -284,6 +284,13 @@
  .stats-legend .legend-body b { color: var(--text-main, inherit); }
  .cust-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13px; border-bottom: 1px solid var(--card-border); cursor: pointer; }
  .cust-row input { width: 16px; height: 16px; flex: 0 0 auto; }
+ /* ===== v4: calendar name boxes wrap (no letter spill), mobile fit ===== */
+ .slot-item { overflow: hidden; word-break: break-word; overflow-wrap: anywhere; line-height: 1.15; }
+ @media (max-width:600px){
+ .slot-item { font-size: 9px !important; padding: 4px 2px !important; height: auto; min-height: 44px; }
+ .calendar-wrapper { grid-template-columns: 64px repeat(5, minmax(0,1fr)) !important; }
+ .calendar-time-col { margin-top: 31px; }
+ }
  </style>
 </head>
 <body>
@@ -400,7 +407,7 @@
 
  <!-- TAB 2: ACTIVE STUDENTS -->
  <div id="students-tab" class="tab-content card" style="display:none;">
- <h2><span>🎓 Active Students</span><span style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button><button class="btn-action btn-green" onclick="openSetupPaymentPlan()">💳 Setup Payment Plan</button></span></h2>
+ <h2><span>🎓 Active Students</span><span style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn-action btn-blue" onclick="openCatManager('course_type')">🏷️ Categories</button><button class="btn-action btn-ltyellow" onclick="openMergeModal()">🔗 Merge Students</button><button class="btn-action btn-blue" onclick="openStudentModal()">➕ Add New Student</button><button class="btn-action btn-green" onclick="openSetupPaymentPlan()">💳 Setup Payment Plan</button></span></h2>
  <div class="filter-bar">
  <div class="form-group"><label>Search</label><input type="text" id="fs-search" placeholder="Name…" oninput="renderStudentsTable()"></div>
  <div class="form-group"><label>Payment</label><select id="fs-pay" onchange="renderStudentsTable()"><option value="all">All</option><option value="paid">Paid in full</option><option value="owes">Owes money</option></select></div>
@@ -416,7 +423,6 @@
  <tbody id="students-table-body"></tbody>
  </table>
  </div>
- <div style="margin-top:14px; text-align:right;"><button class="btn-action btn-blue" onclick="openCatManager('course_type')">🏷️ Manage Course Categories</button></div>
  <div style="margin-top:40px; border-top:1px solid var(--card-border); padding-top:20px;">
  <button class="btn-action btn-del" style="width:100%; padding:12px;" onclick="togglePastStudentsArchive()">📁 Toggle Past Students Archive</button>
  <div id="past-students-container" style="display:none; margin-top:15px;" class="table-container">
@@ -430,7 +436,7 @@
 
  <!-- TAB 3: INVOICES -->
  <div id="invoices-tab" class="tab-content card" style="display:none;">
- <h2><span>💵 Invoices & Revenue</span><button class="btn-action btn-green" onclick="openInvoiceModal()">➕ New Invoice</button></h2>
+ <h2><span>💵 Invoices & Revenue</span><span style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn-action btn-blue" onclick="openCatManager('payment_method')">🏷️ Categories</button><button class="btn-action btn-green" onclick="openInvoiceModal()">➕ New Invoice</button></span></h2>
  <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
  <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="inv-from" onchange="renderInvoices()"></div>
  <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="inv-to" onchange="renderInvoices()"></div>
@@ -442,12 +448,11 @@
  <tbody id="invoices-table-body"></tbody>
  </table>
  </div>
- <div style="margin-top:14px; text-align:right;"><button class="btn-action btn-blue" onclick="openCatManager('payment_method')">🏷️ Manage Payment Method Categories</button></div>
  </div>
 
  <!-- TAB 4: EXPENSES -->
  <div id="expenses-tab" class="tab-content card" style="display:none;">
- <h2><span>💸 Business Expenses</span><div style="display:flex; gap:8px;"><button class="btn-action btn-blue" onclick="openRecurringModal()">🔁 Recurring</button><button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button></div></h2>
+ <h2><span>💸 Business Expenses</span><div style="display:flex; gap:8px; flex-wrap:wrap;"><button class="btn-action btn-blue" onclick="openCatManager('expense_category')">🏷️ Categories</button><button class="btn-action btn-blue" onclick="openRecurringModal()">🔁 Recurring</button><button class="btn-action btn-red" onclick="openExpenseModal()">➕ New Expense</button></div></h2>
  <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
  <div class="form-group" style="max-width:150px;"><label>From</label><input type="date" id="exp-from" onchange="renderExpenses()"></div>
  <div class="form-group" style="max-width:150px;"><label>To</label><input type="date" id="exp-to" onchange="renderExpenses()"></div>
@@ -459,7 +464,6 @@
  <tbody id="expenses-table-body"></tbody>
  </table>
  </div>
- <div style="margin-top:14px; text-align:right;"><button class="btn-action btn-blue" onclick="openCatManager('expense_category')">🏷️ Manage Expense Categories</button></div>
  </div>
 
  <!-- TAB 5: STATS -->
@@ -530,6 +534,23 @@
  </div>
  </div>
 
+</div>
+
+<!-- Merge Students Modal -->
+<div class="modal-overlay" id="merge-modal" style="display:none;">
+ <div class="modal-content" style="text-align:left; max-width:460px;">
+ <h3 style="margin-bottom:6px;">🔗 Merge Duplicate Students</h3>
+ <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Combine two records that are the same person. All invoices, payments, lessons and history move to the chosen name; the other record is deleted.</p>
+ <div class="form-group"><label>Student A</label><select id="merge-a" onchange="syncMergeFinal()"></select></div>
+ <div class="form-group"><label>Student B</label><select id="merge-b" onchange="syncMergeFinal()"></select></div>
+ <div class="form-group"><label>Keep profile data of</label><select id="merge-keep" onchange="syncMergeFinal()"><option value="a">Student A</option><option value="b">Student B</option></select></div>
+ <div class="form-group"><label>Final (correct) name</label><input type="text" id="merge-final" placeholder="Correct spelling"></div>
+ <div id="merge-msg" style="font-size:12px; margin:8px 0;"></div>
+ <div style="display:flex; gap:8px; margin-top:8px;">
+ <button class="btn-action btn-del" style="flex:1; padding:10px;" onclick="closeModal('merge-modal')">Cancel</button>
+ <button class="btn-action btn-green" style="flex:1; padding:10px;" onclick="confirmMergeStudents()">Merge</button>
+ </div>
+ </div>
 </div>
 
 <!-- Customize Widgets Modal -->
@@ -869,18 +890,7 @@
  allCategories = data.categories || [];
  catColorMap = {}; catTextColorMap = {};
  allCategories.forEach(c => { catColorMap[c.type + ':' + c.name] = c.color || '#64748b'; catTextColorMap[c.type + ':' + c.name] = c.text_color || '#ffffff'; });
- const courseSel = document.getElementById('m_student_course');
- const paySel = document.getElementById('i_method');
- const expCatSel = document.getElementById('e_category');
- courseSel.innerHTML = '<option value="Beg">Beg</option><option value="Adv">Adv</option>';
- paySel.innerHTML = '<option value="Credit Card">Credit Card</option><option value="Bank Transfer">Bank Transfer</option>';
- expCatSel.innerHTML = '<option value="Tools">Tools</option><option value="Ads">Ads</option>';
- allCategories.forEach(c => {
- const opt = `<option value="${c.name}" data-id="${c.id}" data-color="${c.color || '#64748b'}" data-text-color="${c.text_color || '#ffffff'}">${c.name}</option>`;
- if (c.type === 'course_type') courseSel.innerHTML += opt;
- if (c.type === 'payment_method') paySel.innerHTML += opt;
- if (c.type === 'expense_category') expCatSel.innerHTML += opt;
- });
+ syncCategoryDropdowns();
  syncCatColor('payment_method');
  syncCatColor('expense_category');
  if (typeof renderInvoices === 'function') renderInvoices();
@@ -890,6 +900,28 @@
 
  function colorForCat(type, name) { return (name && catColorMap[type + ':' + name]) || '#64748b'; }
  function textColorForCat(type, name) { return (name && catTextColorMap[type + ':' + name]) || '#ffffff'; }
+ function _distinct(arr){ return [...new Set((arr||[]).filter(v => v !== null && v !== undefined && String(v).trim() !== ''))]; }
+ // מסנכרן את כל ה-dropdowns כך שיכללו גם קטגוריות מהמסד וגם ערכים שמופיעים בנתונים הקיימים (סנכרון מלא)
+ function syncCategoryDropdowns(){
+ const map = [
+ ['m_student_course','course_type', (allStudents||[]).map(x=>x.course_type), ['Beg','Adv']],
+ ['i_method','payment_method', (allInvoices||[]).map(x=>x.payment_method), ['Credit Card','Bank Transfer']],
+ ['e_category','expense_category', (allExpenses||[]).map(x=>x.category), ['Tools','Ads']]
+ ];
+ map.forEach(([selId, type, dataVals, defaults]) => {
+ const sel = document.getElementById(selId);
+ if (!sel) return;
+ const cur = sel.value;
+ const dbVals = allCategories.filter(c => c.type === type).map(c => c.name);
+ const names = _distinct([...defaults, ...dbVals, ...dataVals]);
+ sel.innerHTML = names.map(n => {
+ const c = allCategories.find(x => x.type === type && x.name === n);
+ const idAttr = c ? ` data-id="${c.id}"` : '';
+ return `<option value="${n}"${idAttr} data-color="${colorForCat(type,n)}" data-text-color="${textColorForCat(type,n)}">${n}</option>`;
+ }).join('');
+ if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+ });
+ }
 
  function syncCatColor(type) {
  const selId = type === 'payment_method' ? 'i_method' : 'e_category';
@@ -943,7 +975,7 @@
  const safeName = (c.name || '').replace(/'/g, '').replace(/\"/g, '');
  const idArg = c.id === null ? 'null' : c.id;
  const fromData = c.registered ? '' : ' <span style=\"font-size:10px; color:var(--text-muted);\">(from data)</span>';
- const delBtn = c.id === null ? '' : `<button class=\"btn-action btn-red\" onclick=\"deleteCatById(${c.id})\">🗑️</button>`;
+ const delBtn = c.id === null ? `<button class=\"btn-action btn-red\" onclick=\"deleteCatByValue('${type}','${safeName}')\">🗑️</button>` : `<button class=\"btn-action btn-red\" onclick=\"deleteCatById(${c.id})\">🗑️</button>`;
  tbody.innerHTML += `<tr><td><input type=\"color\" class=\"cat-bg\" value=\"${c.color}\" style=\"width:42px; min-height:34px; padding:2px;\" onchange=\"saveCatRow('${type}', '${safeName}', ${idArg}, this)\"></td><td><input type=\"color\" class=\"cat-tc\" value=\"${c.text_color}\" style=\"width:42px; min-height:34px; padding:2px;\" onchange=\"saveCatRow('${type}', '${safeName}', ${idArg}, this)\"></td><td><span class=\"badge\" style=\"background:${c.color}; color:${c.text_color};\">${c.name}</span>${fromData}</td><td>${delBtn}</td></tr>`;
  });
  }
@@ -1045,10 +1077,34 @@
  if (res.ok) { await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
  else alert('Failed to save color.');
  }
+ function _countCatUsage(type, name) {
+ if (type === 'course_type') return (allStudents||[]).filter(s => s.course_type === name).length;
+ if (type === 'payment_method') return (allInvoices||[]).filter(i => i.payment_method === name).length;
+ if (type === 'expense_category') return (allExpenses||[]).filter(e => e.category === name).length;
+ return 0;
+ }
+ async function _refreshAfterCatChange() {
+ await loadCategories();
+ if (typeof loadInvoices === 'function') await loadInvoices();
+ if (typeof loadExpenses === 'function') await loadExpenses();
+ if (typeof loadStudents === 'function') await loadStudents();
+ renderCatManager();
+ }
  async function deleteCatById(id) {
- if (!confirm('Delete this category?')) return;
+ const cat = (allCategories||[]).find(c => c.id === id);
+ const used = cat ? _countCatUsage(cat.type, cat.name) : 0;
+ const warn = used ? `\n\n${used} record(s) use this category. They will NOT be deleted \u2014 only left without a category until you reassign them.` : '';
+ if (!confirm('Delete this category?' + warn)) return;
  const res = await apiFetch('/api/admin/categories/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
- if (res.ok) { await loadCategories(); renderCatManager(); if (typeof loadStudents==='function') loadStudents(); }
+ if (res.ok) { await _refreshAfterCatChange(); }
+ else alert('Failed to delete category.');
+ }
+ async function deleteCatByValue(type, name) {
+ const used = _countCatUsage(type, name);
+ const warn = used ? `\n\n${used} record(s) use "${name}". They will NOT be deleted \u2014 only left without a category until you reassign them.` : '';
+ if (!confirm(`Delete category "${name}"?` + warn)) return;
+ const res = await apiFetch('/api/admin/categories/delete-by-value', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, name }) });
+ if (res.ok) { await _refreshAfterCatChange(); }
  else alert('Failed to delete category.');
  }
 
@@ -1083,7 +1139,9 @@
  const invSelect = document.getElementById('i_student_select');
  if (invSelect) { invSelect.innerHTML=''; allStudents.forEach(s => { invSelect.innerHTML += `<option value="${s.name}">${s.name}</option>`; }); }
  populateCourseFilter();
+ if (typeof syncCategoryDropdowns === 'function') syncCategoryDropdowns();
  renderStudentsTable();
+ if (typeof applyStatsFilter === 'function') applyStatsFilter();
  } catch(e) {}
  }
 
@@ -1174,7 +1232,6 @@
  tbody.innerHTML += rowHtml;
  }
  });
- const owedEl = document.getElementById('st-total-owed'); if (owedEl) owedEl.innerText = '\u20aa' + _nf(totalOwed);
  const cnt = document.getElementById('fs-count'); if (cnt) cnt.innerText = shown + ' shown';
  }
 
@@ -1211,6 +1268,7 @@
  const data = await res.json();
  allInvoices = data.invoices || [];
  renderInvoices();
+ if (typeof syncCategoryDropdowns === 'function') syncCategoryDropdowns();
  applyStatsFilter();
  } catch(e) {}
  }
@@ -1258,6 +1316,7 @@
  const data = await res.json();
  allExpenses = data.expenses || [];
  renderExpenses();
+ if (typeof syncCategoryDropdowns === 'function') syncCategoryDropdowns();
  applyStatsFilter();
  } catch(e) {}
  }
@@ -1314,6 +1373,8 @@
  setTxt('st-avg-student', '₪' + _nf(active.length ? inc/active.length : 0));
  setTxt('st-collection', billed>0 ? (collected/billed*100).toFixed(1)+'%' : '—');
  setTxt('st-lessons-done', String(lessonsDone));
+ const totalOwedAll = active.reduce((a,s)=> a + _studentDerived(s).owed, 0); // סך חוב כל התלמידים הפעילים — בלתי תלוי במסנני הטבלה
+ setTxt('st-total-owed', '\u20aa' + _nf(totalOwedAll));
  renderStatsCharts(invF, expF, months);
  }
 
@@ -2154,6 +2215,32 @@
  }
  // פורמט תצוגה בלבד: פסיקי אלפים. אינו משנה חישובים או ערכי data-sort (שנשארים גולמיים למיון).
  function _nf(n){ return Number(n||0).toLocaleString('en-US', { minimumFractionDigits:0, maximumFractionDigits:2 }); }
+ function openMergeModal(){
+ const a = document.getElementById('merge-a'), b = document.getElementById('merge-b');
+ const opts = allStudents.map(x => `<option value="${(x.name||'').replace(/"/g,'')}">${x.name}</option>`).join('');
+ a.innerHTML = opts; b.innerHTML = opts;
+ if (b.options.length > 1) b.selectedIndex = 1;
+ document.getElementById('merge-keep').value = 'a';
+ document.getElementById('merge-msg').innerText = '';
+ syncMergeFinal();
+ document.getElementById('merge-modal').style.display = 'flex';
+ }
+ function _mergeKeptName(){ const keep = document.getElementById('merge-keep').value; return keep === 'b' ? document.getElementById('merge-b').value : document.getElementById('merge-a').value; }
+ function syncMergeFinal(){ const f = document.getElementById('merge-final'); if (f) f.value = _mergeKeptName(); }
+ async function confirmMergeStudents(){
+ const a = document.getElementById('merge-a').value, b = document.getElementById('merge-b').value;
+ const keep = document.getElementById('merge-keep').value;
+ const keepName = keep === 'b' ? b : a;
+ const mergeName = keep === 'b' ? a : b;
+ const finalName = (document.getElementById('merge-final').value || '').trim() || keepName;
+ const msg = document.getElementById('merge-msg');
+ if (!a || !b || a === b) { msg.style.color = 'var(--accent-red)'; msg.innerText = 'Please choose two different students.'; return; }
+ if (!confirm(`Merge "${mergeName}" into "${finalName}"?\nAll invoices, payments, lessons and history move to "${finalName}", and "${mergeName}" is deleted. This cannot be undone.`)) return;
+ const res = await apiFetch('/api/admin/students/merge', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ keepName, mergeName, finalName }) });
+ const j = await res.json().catch(()=>({}));
+ if (res.ok) { alert('✅ Students merged into "' + finalName + '".'); closeModal('merge-modal'); loadInvoices(); loadStudents(); loadCalendarView(); }
+ else { msg.style.color = 'var(--accent-red)'; msg.innerText = 'Merge failed: ' + (j.error || res.status); }
+ }
  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 

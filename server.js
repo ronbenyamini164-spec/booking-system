@@ -715,6 +715,145 @@ app.post('/api/admin/students/delete', async (req, res) => {
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 🔗 איחוד שני תלמידים שהוקלדו בטעות — הפרופיל כולו ממוזג לשם הנבחר, שום מידע לא נמחק
+app.post('/api/admin/students/merge', async (req, res) => {
+ const client = await pool.connect();
+ try {
+ const { keepName, mergeName, finalName } = req.body || {};
+ if (!keepName || !mergeName || keepName === mergeName) {
+ return res.status(400).json({ error: 'Choose two different students.' });
+ }
+ const target = (finalName && String(finalName).trim()) ? String(finalName).trim() : keepName;
+
+ // שלוף את שתי רשומות התלמיד המלאות
+ const bothRows = (await client.query('SELECT * FROM students WHERE name IN ($1,$2)', [keepName, mergeName])).rows;
+ const keepStu = bothRows.find(r => r.name === keepName);
+ const mergeStu = bothRows.find(r => r.name === mergeName);
+ if (!keepStu || !mergeStu) {
+ return res.status(404).json({ error: 'One of the students was not found.' });
+ }
+
+ // ----- כללי מיזוג פרופיל (לא מאבדים כלום) -----
+ const firstNonEmpty = (a, b) => {
+ const empty = v => (v === null || v === undefined || v === '' || (typeof v === 'number' && v === 0));
+ return !empty(a) ? a : b;
+ };
+ const num = v => Number(v) || 0;
+ const higher = (a, b) => Math.max(num(a), num(b)); // המונים/הסכום: הגבוה מבין השניים
+
+ // איחוד fixed_lessons (dedupe לפי יום+שעת התחלה+שעת סיום)
+ const flA = Array.isArray(keepStu.fixed_lessons) ? keepStu.fixed_lessons : [];
+ const flB = Array.isArray(mergeStu.fixed_lessons) ? mergeStu.fixed_lessons : [];
+ const flSeen = new Set();
+ const mergedFixed = [];
+ for (const f of [...flA, ...flB]) {
+ if (!f) continue;
+ const k = `${f.dayIndex}_${f.startTime}_${f.endTime}`;
+ if (flSeen.has(k)) continue;
+ flSeen.add(k);
+ mergedFixed.push(f);
+ }
+
+ // איחוד allowed_slots (dedupe)
+ const asA = Array.isArray(keepStu.allowed_slots) ? keepStu.allowed_slots : [];
+ const asB = Array.isArray(mergeStu.allowed_slots) ? mergeStu.allowed_slots : [];
+ const mergedSlots = Array.from(new Set([...asA, ...asB]));
+
+ const merged = {
+ phone: firstNonEmpty(keepStu.phone, mergeStu.phone),
+ email: firstNonEmpty(keepStu.email, mergeStu.email),
+ course_type: firstNonEmpty(keepStu.course_type, mergeStu.course_type),
+ start_date: firstNonEmpty(keepStu.start_date, mergeStu.start_date),
+ validity_expiration_date: firstNonEmpty(keepStu.validity_expiration_date, mergeStu.validity_expiration_date),
+ id_number_encrypted: firstNonEmpty(keepStu.id_number_encrypted, mergeStu.id_number_encrypted),
+ default_time_range: firstNonEmpty(keepStu.default_time_range, mergeStu.default_time_range) || { start: "08:00", end: "21:00" },
+ process_duration_months: firstNonEmpty(keepStu.process_duration_months, mergeStu.process_duration_months) || 1,
+ default_quota: Math.max(num(keepStu.default_quota) || 2, num(mergeStu.default_quota) || 2),
+ completed_lessons: higher(keepStu.completed_lessons, mergeStu.completed_lessons),
+ total_lessons: higher(keepStu.total_lessons, mergeStu.total_lessons),
+ total_amount: Math.max(Number(keepStu.total_amount) || 0, Number(mergeStu.total_amount) || 0),
+ // "פעיל" מנצח: רק אם שניהם past-student התוצאה past
+ is_past_student: (keepStu.is_past_student === true && mergeStu.is_past_student === true)
+ };
+
+ await client.query('BEGIN');
+
+ // 1) העבר את כל הרשומות התלויות משני השמות אל השם הסופי
+ await client.query('UPDATE invoices SET student_name = $1 WHERE student_name IN ($2,$3)', [target, keepName, mergeName]);
+ await client.query('UPDATE payments SET student_name = $1 WHERE student_name IN ($2,$3)', [target, keepName, mergeName]);
+ await client.query('UPDATE appointments SET booked_by_name = $1 WHERE booked_by_name IN ($2,$3)', [target, keepName, mergeName]);
+ await client.query('UPDATE appointments_history SET booked_by_name = $1 WHERE booked_by_name IN ($2,$3)', [target, keepName, mergeName]);
+
+ // 2) מיזוג weekly_student_config של שני השמות לרשומה אחת (חסימות/טווחים/סלוטים מאוחדים)
+ const cfgRows = (await client.query('SELECT * FROM weekly_student_config WHERE student_name IN ($1,$2)', [keepName, mergeName])).rows;
+ const cfgKeep = cfgRows.find(c => c.student_name === keepName);
+ const cfgMerge = cfgRows.find(c => c.student_name === mergeName);
+ if (cfgKeep || cfgMerge) {
+ const unionArr = (a, b) => {
+ const x = Array.isArray(a) ? a : [];
+ const y = Array.isArray(b) ? b : [];
+ return Array.from(new Set([...x.map(v => JSON.stringify(v)), ...y.map(v => JSON.stringify(v))])).map(s => JSON.parse(s));
+ };
+ const mQuota = firstNonEmpty(cfgKeep && cfgKeep.quota_override, cfgMerge && cfgMerge.quota_override);
+ const mBlocked = unionArr(cfgKeep && cfgKeep.blocked_slots_override, cfgMerge && cfgMerge.blocked_slots_override);
+ const mRanges = unionArr(cfgKeep && cfgKeep.allowed_custom_ranges, cfgMerge && cfgMerge.allowed_custom_ranges);
+ const mAllowed = unionArr(cfgKeep && cfgKeep.allowed_slots_override, cfgMerge && cfgMerge.allowed_slots_override);
+ await client.query('DELETE FROM weekly_student_config WHERE student_name IN ($1,$2)', [keepName, mergeName]);
+ await client.query(
+ 'INSERT INTO weekly_student_config (student_name, quota_override, blocked_slots_override, allowed_custom_ranges, allowed_slots_override) VALUES ($1,$2,$3,$4,$5)',
+ [target, (mQuota === '' ? null : (mQuota ?? null)), JSON.stringify(mBlocked), JSON.stringify(mRanges), mAllowed.length ? JSON.stringify(mAllowed) : null]
+ );
+ }
+
+ // 3) ארכב ומחק את רשומת התלמיד הכפולה (נשמרת ב-deleted_records כגיבוי)
+ await client.query(
+ 'INSERT INTO deleted_records (entity_type, original_id, data) VALUES ($1,$2,$3)',
+ ['students_merged', (mergeStu.id != null ? mergeStu.id : null), JSON.stringify(mergeStu)]
+ );
+ await client.query('DELETE FROM students WHERE name = $1', [mergeName]);
+
+ // 4) כתוב את הפרופיל הממוזג על רשומת ה"נשמר" ושנה אותה לשם הסופי
+ await client.query(
+ `UPDATE students SET
+ name = $1,
+ phone = $2,
+ email = $3,
+ course_type = $4,
+ default_quota = $5,
+ total_amount = $6,
+ total_lessons = $7,
+ completed_lessons = $8,
+ process_duration_months = $9,
+ start_date = $10,
+ validity_expiration_date = $11,
+ is_past_student = $12,
+ id_number_encrypted = $13,
+ default_time_range = $14,
+ allowed_slots = $15,
+ fixed_lessons = $16
+ WHERE name = $17`,
+ [
+ target,
+ merged.phone, merged.email, merged.course_type, merged.default_quota,
+ merged.total_amount, merged.total_lessons, merged.completed_lessons,
+ merged.process_duration_months, merged.start_date, merged.validity_expiration_date,
+ merged.is_past_student, merged.id_number_encrypted,
+ JSON.stringify(merged.default_time_range), JSON.stringify(mergedSlots), JSON.stringify(mergedFixed),
+ keepName
+ ]
+ );
+
+ await client.query('COMMIT');
+ await logAction(req, 'STUDENTS_MERGE', `${mergeName} -> ${target} (kept ${keepName}) [full profile merge]`);
+ res.json({ success: true });
+ } catch (err) {
+ await client.query('ROLLBACK').catch(() => {});
+ res.status(500).json({ error: err.message });
+ } finally {
+ client.release();
+ }
+});
+
 app.post('/api/admin/students/weekly-override', async (req, res) => {
  try {
  const { student_name } = req.body;
@@ -751,14 +890,54 @@ app.post('/api/admin/categories/add', async (req, res) => {
  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// מנקה (ל-NULL) את שדה הקטגוריה מכל הרשומות שמשתמשות בשם — הרשומות עצמן נשמרות, רק הסיווג מוסר
+async function clearCategoryFromRecords(client, type, name) {
+ let n = 0;
+ if (type === 'course_type') {
+ const r = await client.query('UPDATE students SET course_type = NULL WHERE course_type = $1', [name]); n += r.rowCount || 0;
+ } else if (type === 'payment_method') {
+ const r = await client.query('UPDATE invoices SET payment_method = NULL WHERE payment_method = $1', [name]); n += r.rowCount || 0;
+ } else if (type === 'expense_category') {
+ const r1 = await client.query('UPDATE expenses SET category = NULL WHERE category = $1', [name]); n += r1.rowCount || 0;
+ const r2 = await client.query('UPDATE recurring_expenses SET category = NULL WHERE category = $1', [name]); n += r2.rowCount || 0;
+ }
+ return n;
+}
+
+// מחיקת קטגוריה רשומה (לפי id): מנקה את הערך מהרשומות (הן נשארות ללא קטגוריה) ואז מוחק את שורת הקטגוריה. הרשומות לעולם לא נמחקות.
 app.post('/api/admin/categories/delete', async (req, res) => {
+ const client = await pool.connect();
  try {
- const r = await pool.query('SELECT * FROM categories WHERE id = $1', [req.body.id]);
+ const r = await client.query('SELECT * FROM categories WHERE id = $1', [req.body.id]);
+ const cat = r.rows[0];
  await archiveDeleted('categories', r.rows);
- await pool.query('DELETE FROM categories WHERE id = $1', [req.body.id]);
+ await client.query('BEGIN');
+ if (cat) await clearCategoryFromRecords(client, cat.type, cat.name);
+ await client.query('DELETE FROM categories WHERE id = $1', [req.body.id]);
+ await client.query('COMMIT');
+ await logAction(req, 'CATEGORY_DELETE', cat ? `${cat.type}:${cat.name}` : `id ${req.body.id}`);
  res.json({ success: true });
  }
- catch (err) { res.status(500).json({ error: err.message }); }
+ catch (err) { await client.query('ROLLBACK').catch(()=>{}); res.status(500).json({ error: err.message }); }
+ finally { client.release(); }
+});
+
+// מחיקת ערך קטגוריה "from data" (ללא שורה בטבלת categories): מנקה את הערך מהרשומות בלבד. הרשומות לעולם לא נמחקות.
+app.post('/api/admin/categories/delete-by-value', async (req, res) => {
+ const client = await pool.connect();
+ try {
+ const { type, name } = req.body || {};
+ if (!type || !name) return res.status(400).json({ error: 'type and name required' });
+ await client.query('BEGIN');
+ const affected = await clearCategoryFromRecords(client, type, name);
+ const existing = await client.query('SELECT * FROM categories WHERE type=$1 AND name=$2', [type, name]);
+ if (existing.rows.length) { await archiveDeleted('categories', existing.rows); await client.query('DELETE FROM categories WHERE type=$1 AND name=$2', [type, name]); }
+ await client.query('COMMIT');
+ await logAction(req, 'CATEGORY_DELETE_VALUE', `${type}:${name} cleared from ${affected} record(s)`);
+ res.json({ success: true, affected });
+ }
+ catch (err) { await client.query('ROLLBACK').catch(()=>{}); res.status(500).json({ error: err.message }); }
+ finally { client.release(); }
 });
 
 app.post('/api/admin/categories/color', async (req, res) => {
