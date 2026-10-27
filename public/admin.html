@@ -291,6 +291,119 @@
  .calendar-wrapper { grid-template-columns: 64px repeat(5, minmax(0,1fr)) !important; }
  .calendar-time-col { margin-top: 31px; }
  }
+
+ /* ===== יישור היומן: כל הימים ושעות הצד חולקים את אותן שורות ===== */
+ #calendar-tab .calendar-wrapper {
+   display: grid;
+   grid-template-columns: 110px repeat(5, minmax(0, 1fr));
+   grid-template-rows: minmax(36px, auto);
+   grid-auto-rows: minmax(48px, auto);
+   gap: 8px;
+   align-items: stretch;
+ }
+ /* העטיפות נשמרות ב-DOM; התאים משתתפים ברשת משותפת אחת. */
+ #calendar-tab .calendar-time-col,
+ #calendar-tab .calendar-day-col,
+ #calendar-tab .calendar-day-col > div[id^="day-col-"] {
+   display: contents;
+ }
+ #calendar-tab .calendar-day-header {
+   grid-row: 1;
+   height: auto;
+   min-width: 0;
+   padding: 4px 2px;
+   line-height: 1.3;
+   white-space: normal;
+   overflow-wrap: anywhere;
+   align-self: stretch;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+ }
+ #calendar-tab .time-label {
+   grid-column: 1;
+   height: auto;
+   min-height: 48px;
+   min-width: 0;
+   padding: 6px 2px;
+   text-align: center;
+   line-height: 1.3;
+ }
+ #calendar-tab .slot-item {
+   height: auto;
+   min-height: 48px;
+   min-width: 0;
+   white-space: normal;
+   overflow-wrap: anywhere;
+   word-break: normal;
+   line-height: 1.25;
+ }
+ #calendar-tab .slot-item > span { max-width: 100%; }
+ #calendar-tab #day-header-0,
+ #calendar-tab #day-col-0 > .slot-item { grid-column: 2; }
+ #calendar-tab #day-header-1,
+ #calendar-tab #day-col-1 > .slot-item { grid-column: 3; }
+ #calendar-tab #day-header-2,
+ #calendar-tab #day-col-2 > .slot-item { grid-column: 4; }
+ #calendar-tab #day-header-3,
+ #calendar-tab #day-col-3 > .slot-item { grid-column: 5; }
+ #calendar-tab #day-header-4,
+ #calendar-tab #day-col-4 > .slot-item { grid-column: 6; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(1),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(1) { grid-row: 2; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(2),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(2) { grid-row: 3; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(3),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(3) { grid-row: 4; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(4),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(4) { grid-row: 5; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(5),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(5) { grid-row: 6; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(6),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(6) { grid-row: 7; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(7),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(7) { grid-row: 8; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(8),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(8) { grid-row: 9; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(9),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(9) { grid-row: 10; }
+ #calendar-tab #time-sidebar > .time-label:nth-child(10),
+ #calendar-tab [id^="day-col-"] > .slot-item:nth-child(10) { grid-row: 11; }
+
+ @media (max-width: 600px) {
+   #calendar-tab.card { padding: 14px !important; }
+   #calendar-tab h2 > div { flex-wrap: wrap; min-width: 0; }
+   #calendar-tab .calendar-wrapper {
+     grid-template-columns: 56px repeat(5, minmax(0, 1fr)) !important;
+     grid-template-rows: minmax(52px, auto);
+     grid-auto-rows: minmax(92px, auto);
+     gap: 6px;
+   }
+   #calendar-tab .calendar-day-header {
+     font-size: 10px;
+     padding: 4px 0;
+   }
+   #calendar-tab .slot-item {
+     min-height: 92px;
+     font-size: 10px !important;
+     padding: 6px 2px !important;
+   }
+   #calendar-tab .time-label { font-size: 10px; }
+ }
+ /* ===== הסתרה זמנית בלבד — לביטול, מסירים רק את מקטע ההסתרה ===== */
+ /* כל העמודים, הכפתורים, הפונקציות וקריאות הנתונים נשמרים ללא שינוי. */
+ .nav-tabs button[onclick*="'students-tab'"],
+ .nav-tabs button[onclick*="'invoices-tab'"],
+ .nav-tabs button[onclick*="'expenses-tab'"],
+ .nav-tabs button[onclick*="'stats-tab'"],
+ #students-tab,
+ #invoices-tab,
+ #expenses-tab,
+ #stats-tab,
+ #upcoming-board {
+   display: none !important;
+ }
+ /* ===== סוף ההסתרה הזמנית ===== */
  </style>
 </head>
 <body>
